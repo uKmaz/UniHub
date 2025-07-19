@@ -1,0 +1,16 @@
+UCMS MVP
+Öğrenci: 
+
+Kulüplere katılma isteği gönderebilir
+Kulüp aratabilir/filtreleyebilir
+Kulüp görüntüleyebilir
+Katıldığı kulüplerin paylaşımlarını ve etkinliklerini ana sayfasında görebilir
+Etkinliklere katılım sağlayabilir
+
+Kulüp Yöneticisi :
+
+Kulüp oluşturabilir/düzenleyebilir
+üyelik isteklerini yönetebilir
+paylaşım yapabilir
+etkinlik oluşturabilir
+
