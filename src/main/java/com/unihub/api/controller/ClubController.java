@@ -1,33 +1,53 @@
-package com.unihub.api.controller; // Paket adını kontrol et
+package com.unihub.api.controller;
 
+import com.unihub.api.controller.requests.ClubCreationRequest;
+import com.unihub.api.controller.responses.ClubResponse;
 import com.unihub.api.model.Club;
 import com.unihub.api.service.ClubService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RestController // Bu sınıfın bir REST API controller'ı olduğunu belirtir.
-@RequestMapping("/api/clubs") // Bu controller'daki tüm metodların /api/clubs yolu altında olacağını belirtir.
+@RestController
+@RequestMapping("/api/clubs")
 public class ClubController {
 
     private final ClubService clubService;
 
-    @Autowired
     public ClubController(ClubService clubService) {
         this.clubService = clubService;
     }
-
-    // GET http://localhost:8080/api/clubs
     @GetMapping
-    public List<Club> getAllClubs() {
-        return clubService.getAllClubs();
+    public List<ClubResponse> getAllClubs() {
+        // Artık DTO listesi döndürüyoruz.
+        return clubService.getAllClubsAsDto();
     }
 
-    // POST http://localhost:8080/api/clubs
+    // YENİ ENDPOINT: Tek bir kulübü getirmek için.
+    @GetMapping("/{clubId}")
+    public ClubResponse getClubById(@PathVariable Long clubId) {
+        return clubService.getClubById(clubId);
+    }
+
     @PostMapping
-    public Club createClub(@RequestBody Club club) {
-        // @RequestBody, gelen JSON verisini Club nesnesine çevirir.
-        return clubService.createClub(club);
+    public ClubResponse createClub(@RequestBody ClubCreationRequest request, Authentication authentication) {
+        String creatorFirebaseUid = (String) authentication.getPrincipal();
+        return clubService.createClub(request, creatorFirebaseUid);
+    }
+
+    @PostMapping("/{clubId}/join")
+    public ResponseEntity<String> requestToJoinClub(@PathVariable Long clubId, Authentication authentication) {
+        String memberFirebaseUid = (String) authentication.getPrincipal();
+        clubService.requestToJoinClub(clubId, memberFirebaseUid);
+        return ResponseEntity.ok("Join request sent successfully.");
+    }
+
+    @PostMapping("/{clubId}/requests/{userIdToManage}/approve")
+    public ResponseEntity<String> approveJoinRequest(@PathVariable Long clubId, @PathVariable Long userIdToManage, Authentication authentication) {
+        String adminFirebaseUid = (String) authentication.getPrincipal();
+        clubService.manageJoinRequest(clubId, userIdToManage, true, adminFirebaseUid);
+        return ResponseEntity.ok("User approved successfully.");
     }
 }

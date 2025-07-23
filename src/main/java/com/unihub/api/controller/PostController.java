@@ -1,30 +1,38 @@
 package com.unihub.api.controller;
 
-import com.unihub.api.model.Post;
+import com.unihub.api.controller.requests.PostCreationRequest;
+import com.unihub.api.controller.responses.PostDetailResponse;
+import com.unihub.api.controller.responses.PostSummaryResponse;
 import com.unihub.api.service.PostService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/posts")
+@RequestMapping("/api")
 public class PostController {
 
     private final PostService postService;
 
-    @Autowired
     public PostController(PostService postService) {
         this.postService = postService;
     }
 
-    @GetMapping
-    public List<Post> getAllPosts() {
+    @GetMapping("/posts")
+    public List<PostSummaryResponse> getAllPosts() {
         return postService.getAllPosts();
     }
 
-    @PostMapping
-    public Post createPost(@RequestBody Post post) {
-        return postService.createPost(post);
+    @PostMapping("/clubs/{clubId}/posts")
+    public ResponseEntity<PostDetailResponse> createPost(
+            @PathVariable Long clubId,
+            @RequestBody PostCreationRequest request,
+            Authentication authentication) {
+
+        String creatorFirebaseUid = (String) authentication.getPrincipal();
+        PostDetailResponse newPost = postService.createPostForClub(clubId, request, creatorFirebaseUid);
+        return ResponseEntity.status(201).body(newPost); // 201 Created
     }
 }

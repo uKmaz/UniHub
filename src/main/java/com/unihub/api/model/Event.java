@@ -2,6 +2,8 @@ package com.unihub.api.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -34,4 +36,7 @@ public class Event {
     protected void onCreate() {
         creationDate = LocalDateTime.now();
     }
+    // ...
+    @OneToMany(mappedBy = "event")
+    private List<EventAttendee> attendees;
 }

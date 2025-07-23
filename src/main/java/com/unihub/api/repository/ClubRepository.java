@@ -1,8 +1,10 @@
 package com.unihub.api.repository; // Paket adını kontrol et
 
 import com.unihub.api.model.Club;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 
 @Repository // Bu interface'in bir Spring bileşeni olduğunu belirtir (opsiyonel ama iyi bir pratik).
 public interface ClubRepository extends JpaRepository<Club, Long> {
@@ -10,4 +12,7 @@ public interface ClubRepository extends JpaRepository<Club, Long> {
     // Bu kadar! Temel CRUD (Create, Read, Update, Delete) işlemleri
     // (save(), findById(), findAll(), deleteById()) otomatik olarak geldi.
     // İleride özel sorgular gerekirse buraya ekleyeceksin.
+    @Override
+    @EntityGraph(attributePaths = {"members", "members.user"})
+    List<Club> findAll();
 }

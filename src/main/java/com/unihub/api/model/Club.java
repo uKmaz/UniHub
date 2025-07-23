@@ -1,13 +1,11 @@
 package com.unihub.api.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data // @Getter, @Setter, @ToString, @EqualsAndHashCode ve @RequiredArgsConstructor'ı içerir.
 @NoArgsConstructor // Boş constructor'ı oluşturur.
@@ -22,6 +20,16 @@ public class Club {
 
     private String name;
     private String description;
+    private String school;
+    private String department;
     private String profilePictureUrl; // Firebase'den gelecek URL burada saklanacak.
 
+    @OneToMany(mappedBy = "club") // Bir kulübün BİRDEN ÇOK etkinliği olabilir.
+    private List<Event> events;
+
+    @OneToMany(mappedBy = "club")
+    private List<Post> posts;
+
+    @OneToMany(mappedBy = "club")
+    private List<ClubMember> members;
 }

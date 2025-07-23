@@ -1,16 +1,36 @@
-UCMS MVP
-Öğrenci: 
+UniHub MVP
+
+Kullanıcı(Öğrenci):
 
 Kulüplere katılma isteği gönderebilir
+Kulüplerden ayrılabilir
 Kulüp aratabilir/filtreleyebilir
 Kulüp görüntüleyebilir
 Katıldığı kulüplerin paylaşımlarını ve etkinliklerini ana sayfasında görebilir
 Etkinliklere katılım sağlayabilir
+Başka öğrencileri arayabilir
+Başka öğrencilerin katıldığı kulüpleri ve rollerini görüntüleyebilir
+Kulüp oluşturabilir
 
-Kulüp Yöneticisi :
+Kulüp Yetkilisi :
 
-Kulüp oluşturabilir/düzenleyebilir
+üye atabilir
 üyelik isteklerini yönetebilir
 paylaşım yapabilir
 etkinlik oluşturabilir
+kendi rolünü bırakıp üye olabilir
+
+Kulüp Yöneticisi :
+
+üye atabilir
+üyelik isteklerini yönetebilir
+paylaşım yapabilir
+etkinlik oluşturabilir
+Kulübü silebilir
+Başka üyelere yetkili rolü verebilir
+Yetkililerin rolünü alabilir
+
+
+
+
 

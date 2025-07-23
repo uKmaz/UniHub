@@ -11,7 +11,7 @@
 	<groupId>com.UCMS</groupId>
 	<artifactId>UCMS</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>UCMS</name>
+	<name>UniHub</name>
 	<description>UCMS</description>
 	<url/>
 	<licenses>
@@ -48,7 +48,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
-
+		<dependency>
+			<groupId>com.google.firebase</groupId>
+			<artifactId>firebase-admin</artifactId>
+			<version>9.3.0</version>
+		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
