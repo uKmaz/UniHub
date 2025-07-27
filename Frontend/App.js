@@ -11,7 +11,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { auth } from './src/services/FirebaseConfig';
 import './src/i18n';
 
-// Tüm Ekranları Import Et ('.js' uzantıları olmadan)
+// Tüm Ekranları Import Et
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -63,12 +63,38 @@ export default function App() {
   const { t } = useTranslation();
 
   useEffect(() => {
+    // Bu dinleyici, giriş/çıkış anlarını ve ilk yüklemeyi yakalar.
     const unsubscribe = onAuthStateChanged(auth, (authenticatedUser) => {
       setUser(authenticatedUser);
       setLoading(false);
     });
     return unsubscribe;
   }, []);
+
+  // --- YENİ VE KRİTİK useEffect ---
+  // Bu, sadece kullanıcı giriş yapmış ama e-postasını doğrulamamışken çalışır.
+  useEffect(() => {
+    // Eğer kullanıcı varsa ve e-postası doğrulanmamışsa...
+    if (user && !user.emailVerified) {
+      // ...periyodik olarak durumu kontrol etmeye başla.
+      const interval = setInterval(async () => {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          await currentUser.reload();
+          // reload() sonrası auth.currentUser güncellenir.
+          // Eğer artık doğrulanmışsa, App'in state'ini güncelleyerek
+          // yeniden render olmasını ve doğru ekrana geçmesini sağla.
+          if (auth.currentUser.emailVerified) {
+            setUser({ ...auth.currentUser });
+          }
+        }
+      }, 5000); // 5 saniyede bir kontrol et
+
+      // Bu effect'in işi bittiğinde (kullanıcı doğrulanırsa veya çıkış yaparsa),
+      // interval'ı temizle.
+      return () => clearInterval(interval);
+    }
+  }, [user]); // Bu effect, 'user' state'i her değiştiğinde yeniden çalışır.
 
   if (loading) {
     return (
@@ -81,8 +107,9 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator>
-        {user ? (
-          user.emailVerified ? (
+        {user ? ( // 1. Kullanıcı giriş yapmış mı?
+          user.emailVerified ? ( // 2. E-postası doğrulanmış mı?
+            // Evet, doğrulanmış -> Ana uygulama ekranlarını yükle
             <>
               <Stack.Screen name="MainApp" component={MainAppTabs} options={{ headerShown: false }} />
               <Stack.Screen name="CreateClub" component={CreateClubScreen} options={{ title: t('createClubTitle') }} />
@@ -91,9 +118,11 @@ export default function App() {
               <Stack.Screen name="ClubManagement" component={ClubManagementScreen} options={{ title: t('managementPanelTitle') }}/>
             </>
           ) : (
+            // Hayır, doğrulanmamış -> Doğrulama ekranını göster
             <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} options={{ headerShown: false }} />
           )
         ) : (
+          // Kullanıcı giriş yapmamış -> Giriş/Kayıt ekranlarını göster
           <>
             <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Register" component={RegisterScreen} options={{ title: t('registerButton') }} />

@@ -115,6 +115,9 @@
   "confirmRemoveTitle": "Remove Member",
   "confirmRemoveMessage": "Are you sure you want to remove '{{memberName}}' from the club?",
   "noPendingRequests": "No pending membership requests.",
-  "demoteToMember": "Demote to Member"
+  "demoteToMember": "Demote to Member",
+  "continueButton": "Continue",
+  "notVerifiedTitle": "Not Verified",
+  "notVerifiedMessage": "Your e-mail address has not been verified yet. Please check your inbox and try again."
     }
 }

@@ -116,6 +116,9 @@
   "confirmRemoveTitle": "Üyeyi At",
   "confirmRemoveMessage": "'{{memberName}}' kişisini kulüpten atmak istediğinize emin misiniz?",
   "noPendingRequests": "Bekleyen üyelik isteği bulunmuyor.",
-  "demoteToMember": "Yetkisini Al"
+  "demoteToMember": "Yetkisini Al",
+  "continueButton": "Devam Et",
+  "notVerifiedTitle": "Doğrulanmadı",
+  "notVerifiedMessage": "E-posta adresiniz henüz doğrulanmadı. Lütfen gelen kutunuzu kontrol edin ve tekrar deneyin."
   }
 }
