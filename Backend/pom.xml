@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.UCMS</groupId>
-	<artifactId>UniHub</artifactId>
+	<artifactId>UCMS</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>UniHub</name>
 	<description>UCMS</description>
