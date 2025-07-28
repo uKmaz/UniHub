@@ -162,6 +162,13 @@ const ProfileScreen = ({ navigation }) => {
                     <Text style={styles.sectionTitle}>{t('pastEvents')}</Text>
                     <Text style={styles.emptyText}>{t('comingSoon')}</Text>
                 </View>
+                <TouchableOpacity 
+                    style={styles.editProfileButton}
+                    onPress={() => navigation.navigate('UpdateProfile')}
+                >
+                    <Ionicons name="pencil" size={20} color="white" />
+                    <Text style={styles.editProfileButtonText}>{t('editProfile')}</Text>
+                </TouchableOpacity>
             </ScrollView>
         </SafeAreaView>
     );
@@ -181,7 +188,8 @@ const styles = StyleSheet.create({
     listItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
     listItemText: { fontSize: 16 },
     roleText: { fontSize: 14, color: '#888', fontStyle: 'italic' },
-    emptyText: { fontSize: 14, color: '#888', textAlign: 'center', paddingVertical: 20 }
+    editProfileButton: { flexDirection: 'row', backgroundColor: '#5856D6', margin: 16, paddingVertical: 15, borderRadius: 12, justifyContent: 'center', alignItems: 'center', elevation: 3 },
+    editProfileButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16, marginLeft: 8 }
 });
 
 export default ProfileScreen;

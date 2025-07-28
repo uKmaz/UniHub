@@ -10,7 +10,8 @@ const firebaseConfig = {
     projectId: "unihub-aea98",
     storageBucket: "unihub-aea98.firebasestorage.app",
     messagingSenderId: "612135067573",
-    appId: "1:612135067573:web:38100edf36e672542303fc"
+    appId: "1:612135067573:web:38100edf36e672542303fc",
+    measurementId: "G-N3KXV957T8"
 };
 
 // Firebase'i başlat

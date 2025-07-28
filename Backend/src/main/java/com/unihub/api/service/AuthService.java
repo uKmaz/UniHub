@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 public class AuthService {
 
     private final UserRepository userRepository;
+    public static final String DEFAULT_USER_PICTURE_URL = "https://firebasestorage.googleapis.com/v0/b/unihub-aea98.firebasestorage.app/o/public%2FunihubDefaultProfilePicture.jpg?alt=media&token=2c37a3e9-aac6-4998-8d06-acd8ecd385fd";
+
 
     public AuthService(UserRepository userRepository) {
         this.userRepository = userRepository;
@@ -34,14 +36,21 @@ public class AuthService {
             throw new IllegalArgumentException("İsim en az 2 harf olmalıdır.");
         }
 
+
         User newUser = new User();
         newUser.setFirebaseUid(firebaseUid);
         newUser.setEmail(userRecord.getEmail());
         newUser.setName(userRecord.getDisplayName());
-        newUser.setProfilePictureUrl(userRecord.getPhotoUrl());
+
+        // --- DEĞİŞİKLİK BURADA ---
+        // Firebase'den gelen fotoğraf URL'sini al, eğer yoksa (null ise) varsayılanı ata.
+        String photoUrl = userRecord.getPhotoUrl() != null ? userRecord.getPhotoUrl() : DEFAULT_USER_PICTURE_URL;
+        newUser.setProfilePictureUrl(photoUrl);
+
         newUser.setStudentID(request.studentID);
         newUser.setSurname(request.surname);
 
         return userRepository.save(newUser);
     }
+
 }

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { auth } from './FirebaseConfig';
 
-const API_URL = 'http://192.168.1.106:8080/api'; 
+const API_URL = 'http://192.168.1.104:8080/api'; 
 
 const api = axios.create({
     baseURL: API_URL,

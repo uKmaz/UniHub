@@ -46,21 +46,21 @@ public class UserController {
     }
 
     @PutMapping("/me")
-    public ResponseEntity<?> updateUserProfile(Authentication authentication, @RequestBody UserProfileUpdateRequest request) {
-        // Giriş yapmış kullanıcının kimliğini (Firebase UID) al
+    public ResponseEntity<UserResponse> updateUserProfile(Authentication authentication, @RequestBody UserProfileUpdateRequest request) {
         String firebaseUid = (String) authentication.getPrincipal();
-
         try {
-            // UID'yi kullanarak Firebase'den kullanıcının e-postasını güvenli bir şekilde al
-            String email = FirebaseAuth.getInstance().getUser(firebaseUid).getEmail();
-
-            // Servis metodunu çağırarak profili güncelle
-            UserResponse updatedUser = userService.updateUserProfile(email, request);
+            // Artık email'e gerek yok, doğrudan firebaseUid'yi servise gönderiyoruz
+            UserResponse updatedUser = userService.updateUserProfile(firebaseUid, request);
             return ResponseEntity.ok(updatedUser);
-
         } catch (Exception e) {
-            // Hata durumunda sunucu hatası döndür
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteMyAccount(Authentication authentication) {
+        String firebaseUid = (String) authentication.getPrincipal();
+        userService.deleteCurrentUser(firebaseUid);
+        return ResponseEntity.ok().build();
     }
 }

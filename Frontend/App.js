@@ -24,6 +24,7 @@ import EventDetailScreen from './src/screens/EventDetailScreen';
 import VerifyEmailScreen from './src/screens/VerifyEmailScreen';
 import ClubDetailScreen from './src/screens/ClubDetailScreen';
 import ClubManagementScreen from './src/screens/ClubManagementScreen';
+import UpdateProfileScreen from './src/screens/UpdateProfileScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -116,6 +117,7 @@ export default function App() {
               <Stack.Screen name="EventDetail" component={EventDetailScreen} options={{ title: t('eventDetails') }} />
               <Stack.Screen name="ClubDetail" component={ClubDetailScreen} options={({ route }) => ({ title: route.params?.clubName || t('clubDetails') })} />
               <Stack.Screen name="ClubManagement" component={ClubManagementScreen} options={{ title: t('managementPanelTitle') }}/>
+              <Stack.Screen name="UpdateProfile" component={UpdateProfileScreen} options={{ title: t('updateProfileTitle') }}/>
             </>
           ) : (
             // Hayır, doğrulanmamış -> Doğrulama ekranını göster

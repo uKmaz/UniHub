@@ -103,6 +103,16 @@
 					</excludes>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>3.3.1</version> <!-- Güncel bir versiyon kullanalım -->
+				<configuration>
+					<nonFilteredFileExtensions>
+						<nonFilteredFileExtension>json</nonFilteredFileExtension>
+					</nonFilteredFileExtensions>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 

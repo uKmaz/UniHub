@@ -11,6 +11,7 @@ const RegisterScreen = ({ navigation }) => {
     const [surname, setSurname] = useState('');
     const [studentId, setStudentId] = useState('');
     const [email, setEmail] = useState('');
+    const [confirmEmail, setConfirmEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -18,15 +19,17 @@ const RegisterScreen = ({ navigation }) => {
 
     const validateForm = () => {
         const newErrors = {};
-        if (name.length < 2) newErrors.name = "İsim en az 2 karakter olmalıdır.";
-        if (surname.length < 2) newErrors.surname = "Soyisim en az 2 karakter olmalıdır.";
-        if (!/^\d{10}$/.test(studentId)) newErrors.studentId = "Öğrenci numarası 10 rakamdan oluşmalıdır.";
-        if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = "Geçerli bir e-posta adresi girin.";
-        if (password.length < 6 || password.length > 40) newErrors.password = "Şifre 6 ile 40 karakter arasında olmalıdır.";
+        if (name.length < 2) newErrors.name = t('nameLength');
+        if (surname.length < 2) newErrors.surname = t('surnameLength');
+        if (!/^\d{10}$/.test(studentId)) newErrors.studentId = t('studentIdLength');
+        if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = t('emailFormat');
+        if (email !== confirmEmail) newErrors.confirmEmail = t('emailsDoNotMatch');
+        if (password.length < 6 || password.length > 40) newErrors.password = t('passwordLength');
         if (password !== confirmPassword) newErrors.confirmPassword = t('passwordsDoNotMatch');
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
+
 
     const handleRegister = async () => {
         if (!validateForm()) return;
@@ -35,17 +38,21 @@ const RegisterScreen = ({ navigation }) => {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
+            const token = await user.getIdToken();
 
             await updateProfile(user, { displayName: name });
 
-            // Doğrulama e-postası gönder
             await sendEmailVerification(user);
 
-            // Backend'e senkronizasyon isteği at
             await api.post('/auth/register', {
-                studentID: Number(studentId),
-                surname: surname,
-            });
+            studentID: Number(studentId),
+            surname: surname,
+            }, 
+            {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+});
 
         } catch (error) {
             console.error("Kayıt sırasında hata:", error);
@@ -89,8 +96,8 @@ const RegisterScreen = ({ navigation }) => {
                     placeholder={t('surnamePlaceholder')} 
                     value={surname} 
                     onChangeText={setSurname}
-                    textContentType="familyName" // -> EKLENDİ
-                    autoComplete="name-family"   // -> EKLENDİ
+                    textContentType="familyName" 
+                    autoComplete="name-family"  
                 />
                 {errors.surname && <Text style={styles.errorText}>{errors.surname}</Text>}
 
@@ -103,18 +110,22 @@ const RegisterScreen = ({ navigation }) => {
                     maxLength={10} 
                 />
                 {errors.studentId && <Text style={styles.errorText}>{errors.studentId}</Text>}
-
-                <TextInput 
-                    style={styles.input} 
-                    placeholder={t('emailPlaceholder')} 
-                    value={email} 
-                    onChangeText={setEmail} 
-                    keyboardType="email-address" 
-                    autoCapitalize="none"
-                    textContentType="emailAddress" // -> EKLENDİ
-                    autoComplete="email"          // -> EKLENDİ
+                <TextInput style={styles.input}
+                    placeholder={t('emailPlaceholder')}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none" 
                 />
                 {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+                <TextInput style={styles.input}
+                    placeholder={t('confirmEmailPlaceholder')}
+                    value={confirmEmail}
+                    onChangeText={setConfirmEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                />
+                {errors.confirmEmail && <Text style={styles.errorText}>{errors.confirmEmail}</Text>}
 
                 <TextInput 
                     style={styles.input} 

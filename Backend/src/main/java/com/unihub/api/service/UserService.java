@@ -1,5 +1,8 @@
 package com.unihub.api.service;
 
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.unihub.api.controller.requests.UserProfileUpdateRequest;
@@ -15,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.unihub.api.service.AuthService.DEFAULT_USER_PICTURE_URL;
 
 @Service
 public class UserService {
@@ -57,16 +62,47 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    public UserResponse updateUserProfile(String email, UserProfileUpdateRequest request) {
-        User userToUpdate = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+    public UserResponse updateUserProfile(String firebaseUid, UserProfileUpdateRequest request) {
+        User userToUpdate = userRepository.findByFirebaseUid(firebaseUid)
+                .orElseThrow(() -> new RuntimeException("User not found with firebaseUid: " + firebaseUid));
+
 
         if (request.name != null) userToUpdate.setName(request.name);
         if (request.surname != null) userToUpdate.setSurname(request.surname);
         if (request.profilePictureUrl != null) userToUpdate.setProfilePictureUrl(request.profilePictureUrl);
 
         User updatedUser = userRepository.save(userToUpdate);
-        return mapUserToUserResponse(updatedUser); // DTO'ya çevirerek döndür.
+        return mapUserToUserResponse(updatedUser);
+    }
+
+    @Transactional
+    public void deleteCurrentUser(String firebaseUid) {
+        User userToDelete = userRepository.findByFirebaseUid(firebaseUid)
+                .orElseThrow(() -> new RuntimeException("User to delete not found in local DB."));
+        String photoUrl = userToDelete.getProfilePictureUrl();
+        if (photoUrl != null && !photoUrl.equals(DEFAULT_USER_PICTURE_URL)) {
+            try {
+                Storage storage = StorageOptions.getDefaultInstance().getService();
+                BlobId blobId = BlobId.of("unihub-aea98.appspot.com", "profile_pictures/" + firebaseUid);
+                boolean deleted = storage.delete(blobId);
+                if (deleted) {
+                    System.out.println("Kullanıcının profil fotoğrafı Storage'dan başarıyla silindi.");
+                } else {
+                    System.out.println("Kullanıcının profil fotoğrafı Storage'da bulunamadı.");
+                }
+            } catch (Exception e) {
+                System.err.println("Storage'dan fotoğraf silinirken bir hata oluştu: " + e.getMessage());
+            }
+        }
+
+        try {
+            FirebaseAuth.getInstance().deleteUser(firebaseUid);
+        } catch (FirebaseAuthException e) {
+            // Firebase'de kullanıcı zaten silinmişse veya bir sorun olursa logla ama devam et
+            System.err.println("Firebase user deletion failed, proceeding with DB deletion: " + e.getMessage());
+        }
+
+        userRepository.delete(userToDelete);
     }
 
     // --- YARDIMCI METODLAR (Kod tekrarını önlemek için) ---

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert } from 'r
 import { useTranslation } from 'react-i18next';
 import { signOut } from 'firebase/auth';
 import { auth } from '../services/FirebaseConfig';
+import api from '../services/ApiService'; // -> YENİ
 
 const SettingsScreen = () => {
     const { t, i18n } = useTranslation();
@@ -12,7 +13,7 @@ const SettingsScreen = () => {
         i18n.changeLanguage(lang);
     };
 
-    const handleLogout = async () => {
+        const handleLogout = async () => {
         try {
             await signOut(auth);
         } catch (error) {
@@ -20,6 +21,29 @@ const SettingsScreen = () => {
             Alert.alert(t('errorTitle'), t('logoutError'));
         }
     };
+
+    // YENİ FONKSİYON: Hesabı sil
+    const handleDeleteAccount = () => {
+        Alert.alert(
+            t('deleteAccountConfirmTitle'),
+            t('deleteAccountConfirmMessage'),
+            [
+                { text: t('cancel'), style: 'cancel' },
+                { text: t('deleteAccount'), style: 'destructive', onPress: async () => {
+                    try {
+                        await api.delete('/users/me');
+                        // Başarılı silme sonrası App.js'teki onAuthStateChanged
+                        // kullanıcıyı otomatik olarak Login'e atacak.
+                        Alert.alert(t('successTitle'), t('accountDeleteSuccess'));
+                    } catch (error) {
+                        console.error("Hesap silinemedi:", error);
+                        Alert.alert(t('errorTitle'), t('accountDeleteError'));
+                    }
+                }}
+            ]
+        );
+    };
+
 
     return (
         <SafeAreaView style={styles.container}>
@@ -35,9 +59,14 @@ const SettingsScreen = () => {
                     </TouchableOpacity>
                 </View>
             </View>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                <Text style={styles.logoutButtonText}>{t('logout')}</Text>
+            <TouchableOpacity style={[styles.buttonBase, styles.logoutButton]} onPress={handleLogout}>
+                <Text style={styles.buttonText}>{t('logout')}</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={[styles.buttonBase, styles.deleteButton]} onPress={handleDeleteAccount}>
+                <Text style={styles.buttonText}>{t('deleteAccount')}</Text>
+            </TouchableOpacity>
+
+
         </SafeAreaView>
     );
 };
@@ -55,7 +84,11 @@ const styles = StyleSheet.create({
     activeText: { color: '#fff', fontWeight: 'bold' },
     inactiveText: { color: '#007AFF' },
     logoutButton: { backgroundColor: '#FF3B30', borderRadius: 8, paddingVertical: 15, alignItems: 'center', margin: 20, marginTop: 30 },
-    logoutButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }
+    logoutButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+    buttonBase: { borderRadius: 8, paddingVertical: 15, alignItems: 'center', marginHorizontal: 20 },
+    logoutButton: { backgroundColor: '#FF3B30', marginTop: 10 },
+    deleteButton: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#FF3B30', marginTop: 30 },
+    buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });
 
 export default SettingsScreen;
