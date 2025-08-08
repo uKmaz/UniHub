@@ -36,15 +36,11 @@ const VerifyEmailScreen = () => {
                     onPress: async () => {
                         setIsDeleting(true);
                         try {
-                            // Backend'deki silme endpoint'ini çağırmayı dene.
                             await api.delete('/users/me/unverified');
                         } catch (error) {
                             console.error("Backend'den kullanıcı silinirken hata:", error);
-                            // Backend başarısız olursa kullanıcıya bir hata göster.
                             Alert.alert(t('errorTitle'), "Hesap silinirken bir sorun oluştu.");
                         } finally {
-                            // İşlem başarılı da olsa başarısız da olsa, HER ZAMAN frontend'den çıkış yap.
-                            // Bu, kullanıcının bu ekranda takılı kalmasını engeller.
                             await signOut(auth);
                             setIsDeleting(false);
                         }

@@ -86,4 +86,14 @@ public class EventController {
         return ResponseEntity.ok(eventService.getEventSubmissions(eventId, adminFirebaseUid));
     }
 
+    @DeleteMapping("/{eventId}/attendees/{userId}")
+    public ResponseEntity<Void> removeAttendee(
+            @PathVariable Long eventId,
+            @PathVariable Long userId,
+            Authentication authentication) {
+        String adminFirebaseUid = (String) authentication.getPrincipal();
+        eventService.removeAttendee(eventId, userId, adminFirebaseUid);
+        return ResponseEntity.noContent().build();
+    }
+
 }

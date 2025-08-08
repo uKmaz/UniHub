@@ -16,9 +16,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
@@ -220,7 +218,6 @@ public class ClubService {
         }
     }
 
-
     @Transactional
     public void removeMember(Long clubId, Long userIdToRemove, String adminFirebaseUid) {
         ClubMember adminMembership = findMembership(adminFirebaseUid, clubId, Role.OWNER, Role.MANAGER);
@@ -378,7 +375,48 @@ public class ClubService {
         String action = String.format("'%s' kulüpten ayrıldı.", user.getName());
         logService.logClubAction(clubId, firebaseUid, action);
     }
+
+    public List<ClubSummaryResponse> searchClubs(String searchTerm) {
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        return clubRepository.searchByNameOrShortName(searchTerm).stream()
+                .map(this::mapClubToSummaryResponse) // Basit bir DTO'ya çevir
+                .collect(Collectors.toList());
+    }
+
+    public Map<String, List<ClubSummaryResponse>> getDiscoveryData(String university, String faculty, String department) {
+        Map<String, List<ClubSummaryResponse>> discoveryData = new HashMap<>();
+
+        List<ClubSummaryResponse> topByMembers = clubRepository.findFilteredAndSortedClubs(university, faculty, department, "memberCount", 5)
+                .stream().map(this::mapClubToSummaryResponse).collect(Collectors.toList());
+
+        List<ClubSummaryResponse> topByEvents = clubRepository.findFilteredAndSortedClubs(university, faculty, department, "eventCount", 5)
+                .stream().map(this::mapClubToSummaryResponse).collect(Collectors.toList());
+
+        List<ClubSummaryResponse> randomClubs = clubRepository.findFilteredAndSortedClubs(university, faculty, department, "random", 5)
+                .stream().map(this::mapClubToSummaryResponse).collect(Collectors.toList());
+
+        discoveryData.put("topByMembers", topByMembers);
+        discoveryData.put("topByEvents", topByEvents);
+        discoveryData.put("randomClubs", randomClubs);
+
+        return discoveryData;
+    }
+
     // --- YARDIMCI METODLAR ---
+
+    private ClubSummaryResponse mapClubToSummaryResponse(Club club) {
+        ClubSummaryResponse dto = new ClubSummaryResponse();
+        dto.setId(club.getId());
+        dto.setName(club.getName());
+        dto.setShortName(club.getShortName());
+        dto.setProfilePictureUrl(club.getProfilePictureUrl());
+        dto.setUniversity(club.getUniversity());
+        dto.setFaculty(club.getFaculty());
+        dto.setDepartment(club.getDepartment());
+        return dto;
+    }
 
     private ClubResponse mapClubToClubResponse(Club club, Long currentUserId) {
         ClubResponse response = new ClubResponse();
@@ -477,7 +515,7 @@ public class ClubService {
         if (event.getClub() != null) {
             dto.clubId = event.getClub().getId();
             dto.clubName = event.getClub().getName();
-            dto.eventPictureUrl = event.getPictureURL();
+            dto.clubProfilePictureUrl = event.getClub().getProfilePictureUrl();
         }
         return dto;
     }

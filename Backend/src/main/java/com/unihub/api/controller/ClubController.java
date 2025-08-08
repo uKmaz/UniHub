@@ -14,7 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
+import java.util.Map;
 
 
 @RestController
@@ -139,5 +139,18 @@ public class ClubController {
         String firebaseUid = (String) authentication.getPrincipal();
         clubService.leaveClub(clubId, firebaseUid);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/discover")
+    public Map<String, List<ClubSummaryResponse>> getDiscoveryData(
+            @RequestParam(required = false) String university,
+            @RequestParam(required = false) String faculty,
+            @RequestParam(required = false) String department) {
+        return clubService.getDiscoveryData(university, faculty, department);
+    }
+
+    @GetMapping("/search")
+    public List<ClubSummaryResponse> searchClubs(@RequestParam String term) {
+        return clubService.searchClubs(term);
     }
 }

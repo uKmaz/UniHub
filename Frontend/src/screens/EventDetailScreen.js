@@ -12,8 +12,6 @@ const EventDetailScreen = ({ route }) => {
     const [eventDetails, setEventDetails] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    useFocusEffect(
-    useCallback(() => {
         const fetchData = async () => {
         setLoading(true);
         try {
@@ -24,16 +22,16 @@ const EventDetailScreen = ({ route }) => {
         } finally {
             setLoading(false);
         }
-        };
+    };
 
-        fetchData();
-
-        // Explicitly return undefined to avoid any implicit Promise return
-        return; // or return undefined;
-    }, [eventId])
+    useFocusEffect(
+        useCallback(() => {
+            fetchData();
+            return;
+        }, [eventId])
     );
 
-
+    
     const handleOpenMap = () => {
         const locationQuery = encodeURIComponent(eventDetails.location);
         const url = `https://www.google.com/maps/search/?api=1&query=${locationQuery}`;
@@ -42,30 +40,31 @@ const EventDetailScreen = ({ route }) => {
 
 
     const handleAttend = async () => {
-        try {
-            if (eventDetails.formQuestions && eventDetails.formQuestions.length > 0) {
-                navigation.navigate('EventForm', {
-                    eventId: eventDetails.id,
-                    questions: eventDetails.formQuestions
-                });
-            } else {
-                await api.post(`/events/${eventId}/attend`);
-                Alert.alert(t('successTitle'), t('eventAttendSuccess'));
-                fetchData();
-            }
-        } catch (error) {
-            Alert.alert(t('errorTitle'), error.response?.data?.message || t('eventAttendError'));
+    try {
+        if (eventDetails.formQuestions && eventDetails.formQuestions.length > 0) {
+            navigation.navigate('EventForm', {
+                eventId: eventDetails.id,
+                questions: eventDetails.formQuestions,
+            });
+        } else {
+            await api.post(`/events/${eventId}/attend`);
+            Alert.alert(t('successTitle'), t('eventAttendSuccess'));
+            await fetchData(); // Now accessible
         }
-    };
+    } catch (error) {
+        Alert.alert(t('errorTitle'), error.response?.data?.message || t('eventAttendError'));
+    }
+};
 
     const handleLeave = async () => {
-        try {
-            await api.delete(`/events/${eventId}/leave`);
-            fetchData();
-        } catch (error) {
-            Alert.alert(t('errorTitle'), "Etkinlikten ayrılırken bir sorun oluştu.");
-        }
-    };
+    try {
+        const response = await api.delete(`/events/${eventId}/leave`);
+        Alert.alert(t('successTitle'), t('eventLeaveSuccess'));
+        await fetchData();
+    } catch (error) {
+        Alert.alert(t('errorTitle'), t('eventLeaveFail'));
+    }
+};
 
     const handleDeleteEvent = () => {
         Alert.alert(
@@ -91,22 +90,46 @@ const EventDetailScreen = ({ route }) => {
         );
     };
 
+     const handleRemoveAttendee = (attendee) => {
+        Alert.alert(
+            t('confirmRemoveAttendeeTitle'),
+            t('confirmRemoveAttendeeMessage', { attendeeName: `${attendee.user.name} ${attendee.user.surname}` }),
+            [
+                { text: t('cancel'), style: 'cancel' },
+                {
+                    text: t('removeFromEvent'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await api.delete(`/events/${eventId}/attendees/${attendee.user.id}`);
+                            Alert.alert(t('successTitle'), t('attendeeRemoveSuccess'));
+                            fetchData(); // Listeyi yenile
+                        } catch (error) {
+                            console.error("Katılımcı çıkarılamadı:", error);
+                            Alert.alert(t('errorTitle'), t('attendeeRemoveError'));
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
     if (loading || !eventDetails) {
         return <View style={styles.center}><ActivityIndicator size="large" /></View>;
     }
 
-    const { isCurrentUserAttending, canCurrentUserManage, attendeeCount, isCurrentUserMemberOfClub } = eventDetails;
+    const { isCurrentUserAttending, canCurrentUserManage, isCurrentUserMemberOfClub, attendees, pictureUrl, formQuestions } = eventDetails;
 
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView>
-                <Image source={{ uri: eventDetails.pictureURL || 'https://placehold.co/600x400' }} style={styles.eventImage} />
+                <Image source={{ uri: eventDetails.pictureUrl || 'https://placehold.co/600x400' }} style={styles.eventImage} />
                 <View style={styles.content}>
                     <Text style={styles.title}>{eventDetails.description}</Text>
                     <View style={styles.infoRow}>
                         <Ionicons name="business-outline" size={16} color="gray" />
                         <Text style={styles.infoText}>{eventDetails.club.name}</Text>
-                    </View>
+                    </View> 
                     <View style={styles.infoRow}>
                         <Ionicons name="calendar-outline" size={16} color="gray" />
                         <Text style={styles.infoText}>
@@ -134,7 +157,7 @@ const EventDetailScreen = ({ route }) => {
                     {isCurrentUserMemberOfClub ? (
                         isCurrentUserAttending ? (
                             <TouchableOpacity style={[styles.actionButton, styles.leaveButton]} onPress={handleLeave}>
-                                <Text style={styles.buttonText}>Katılıyorum (Ayrıl)</Text>
+                                <Text style={styles.buttonText}>{t('leaveEventButton')}</Text>
                             </TouchableOpacity>
                         ) : (
                             <TouchableOpacity style={[styles.actionButton, styles.attendButton]} onPress={handleAttend}>
@@ -161,8 +184,51 @@ const EventDetailScreen = ({ route }) => {
                 </View>
                 
                 <View style={styles.attendeesSection}>
-                    <Text style={styles.sectionTitle}>{t('attendeeCount', { count: attendeeCount })}</Text>
+                
+                    <Text style={styles.sectionTitle}>{t('attendeeCount', { count: attendees.length })}</Text>
+                    
+                    {canCurrentUserManage && attendees && attendees.length > 0 && attendees.map(attendee => (
+                        <TouchableOpacity 
+                            key={attendee.user.id} 
+                            style={styles.attendeeCard}
+                             onPress={() => navigation.navigate('MemberDetail', { 
+                                userId: attendee.user.id, 
+                                memberName: `${attendee.user.name} ${attendee.user.surname}`,
+                                clubId: eventDetails.club.id 
+                            })}
+                            onLongPress={() => handleRemoveAttendee(attendee)}
+                        >
+                            <View style={styles.attendeeRow}>
+                                <Image source={{ uri: attendee.user.profilePictureUrl }} style={styles.attendeeImage} />
+                                <View>
+                                    <Text style={styles.attendeeName}>{attendee.user.name} {attendee.user.surname}</Text>
+                                    <Text style={styles.attendeeDate}>Katılım: {new Date(attendee.joinedAt).toLocaleDateString('tr-TR')}</Text>
+                                </View>
+                            </View>
+                            {attendee.formAnswers && attendee.formAnswers.length > 0 && (
+                                <View style={styles.answersContainer}>
+                                    <Text style={styles.answersTitle}>{t('formAnswers')}</Text>
+                                    {attendee.formAnswers.map((answer, index) => (
+                                        <View key={index} style={styles.answerRow}>
+                                            <Text style={styles.questionText}>{answer.questionText}:</Text>
+                                            <Text style={styles.answerText}>{answer.answerText}</Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    ))}
+                    
                 </View>
+                {canCurrentUserManage && formQuestions && formQuestions.length > 0 && (
+                    <TouchableOpacity 
+                        style={[styles.actionButton, styles.submissionsButton]} 
+                        onPress={() => navigation.navigate('EventSubmissions', { eventId })}
+                    >
+                        <Ionicons name="document-text-outline" size={20} color="white" />
+                        <Text style={styles.buttonText}>{t('viewSubmissions')}</Text>
+                    </TouchableOpacity>
+                )}
             </ScrollView>
         </SafeAreaView>
     );
@@ -179,7 +245,7 @@ const styles = StyleSheet.create({
     actionsContainer: { paddingHorizontal: 20, marginTop: 20, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 20 },
     actionButton: { padding: 15, borderRadius: 10, alignItems: 'center', marginBottom: 10 },
     attendButton: { backgroundColor: '#007AFF' },
-    leaveButton: { backgroundColor: '#34C759' },
+    leaveButton: { backgroundColor: '#fbbc01ff' },
     deleteButton: { backgroundColor: '#FF3B30' },
     buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
     notMemberContainer: { alignItems: 'center', padding: 20, backgroundColor: '#fff3cd', borderRadius: 10, marginHorizontal: 20 },
@@ -188,8 +254,30 @@ const styles = StyleSheet.create({
     attendeesSection: { padding: 20 },
     sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
     actionButton: { flexDirection: 'row', justifyContent: 'center', padding: 15, borderRadius: 10, alignItems: 'center', marginBottom: 10 },
-    mapButton: { backgroundColor: '#34C759' }, // Yeşil renk
+    mapButton: { backgroundColor: '#34C759' },
     buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
+    attendeesSection: { padding: 20 },
+    sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+    attendeeCard: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 15,
+        marginBottom: 12,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+    },
+    attendeeRow: { flexDirection: 'row', alignItems: 'center' },
+    attendeeImage: { width: 40, height: 40, borderRadius: 20, marginRight: 12, backgroundColor: '#e0e0e0' },
+    attendeeName: { fontSize: 16, fontWeight: 'bold' },
+    attendeeDate: { fontSize: 12, color: 'gray' },
+    answersContainer: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
+    answersTitle: { fontWeight: '600', marginBottom: 5 },
+    answerRow: { marginBottom: 4 },
+    questionText: { fontSize: 14, color: '#555', fontWeight: '500' },
+    answerText: { fontSize: 14, color: '#000' },
+    submissionsButton: { backgroundColor: '#5856D6' },
 });
 
 export default EventDetailScreen;

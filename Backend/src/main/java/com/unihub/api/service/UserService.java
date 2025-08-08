@@ -220,7 +220,7 @@ public class UserService {
         dto.id = event.getId();
         dto.description = event.getDescription();
         dto.eventDate = event.getEventDate();
-        dto.eventPictureUrl = event.getPictureURL();
+        dto.clubProfilePictureUrl = event.getClub().getProfilePictureUrl();
         if (event.getClub() != null) {
             dto.clubId = event.getClub().getId();
             dto.clubName = event.getClub().getName();

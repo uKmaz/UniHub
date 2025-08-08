@@ -15,44 +15,47 @@ import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
-
 import api from '../services/ApiService';
 import { auth } from '../services/FirebaseConfig';
+import { useTheme } from '../context/ThemeContext'; // -> TEMA İÇİN IMPORT
 
-    const EventListItem = ({ event, onPress }) => (
-        <TouchableOpacity style={styles.eventListItem} onPress={onPress}>
-            <Image 
-                source={{ uri: event.clubProfilePictureUrl || 'https://placehold.co/100' }} 
-                style={styles.eventClubImage}
-            />
-            <View style={styles.eventInfo}>
-                <Text style={styles.eventDescription} numberOfLines={1}>{event.description}</Text>
-                <Text style={styles.eventClubName}>{event.clubName}</Text>
-            </View>
-            <Text style={styles.eventDate}>
-                {new Date(event.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-            </Text>
-        </TouchableOpacity>
-    );
-    const ProfileScreen = ({ navigation }) => {
-        const { t } = useTranslation();
-        const [userProfile, setUserProfile] = useState(null);
-        const [loading, setLoading] = useState(true);
+// EventListItem bileşeni artık stilleri bir prop olarak alacak
+const EventListItem = ({ event, onPress, styles }) => (
+    <TouchableOpacity style={styles.eventListItem} onPress={onPress}>
+        <Image 
+            source={{ uri: event.clubProfilePictureUrl || 'https://placehold.co/100' }} 
+            style={styles.eventClubImage}
+        />
+        <View style={styles.eventInfo}>
+            <Text style={styles.eventDescription} numberOfLines={1}>{event.description}</Text>
+            <Text style={styles.eventClubName}>{event.clubName}</Text>
+        </View>
+        <Text style={styles.eventDate}>
+            {new Date(event.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+        </Text>
+    </TouchableOpacity>
+);
 
-        const fetchUserProfile = useCallback(() => {
-            const fetchData = async () => {
-                setLoading(true);
-                try {
-                    const response = await api.get('/users/me');
-                    setUserProfile(response.data);
-                } catch (error) {
-                    console.error("Profil verisi çekilemedi:", error);
-                } finally {
-                    setLoading(false);
-                }
-            };
-            fetchData();
-        }, []);
+const ProfileScreen = ({ navigation }) => {
+    const { t } = useTranslation();
+    const { theme } = useTheme(); // -> Temayı al
+    const [userProfile, setUserProfile] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    const fetchUserProfile = useCallback(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const response = await api.get('/users/me');
+                setUserProfile(response.data);
+            } catch (error) {
+                console.error("Profil verisi çekilemedi:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
 
     useFocusEffect(fetchUserProfile);
 
@@ -79,7 +82,7 @@ import { auth } from '../services/FirebaseConfig';
         }
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: 'Images',
                 allowsEditing: true,
                 aspect: [1, 1],
                 quality: 0.5,
@@ -137,8 +140,10 @@ import { auth } from '../services/FirebaseConfig';
         }
     };
 
+    const styles = getStyles(theme); // -> Stilleri temaya göre oluştur
+
     if (loading || !userProfile) {
-        return <View style={styles.center}><ActivityIndicator size="large" /></View>;
+        return <View style={styles.center}><ActivityIndicator size="large" color={theme.primary} /></View>;
     }
 
     return (
@@ -181,13 +186,13 @@ import { auth } from '../services/FirebaseConfig';
                                 key={event.id} 
                                 event={event} 
                                 onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
+                                styles={styles} // -> Stilleri EventListItem'e gönder
                             />
                         ))
                     ) : (
                         <Text style={styles.emptyText}>{t('noUpcomingEventsProfile')}</Text>
                     )}
                 </View>
-
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>{t('pastEvents')}</Text>
                      {userProfile.pastAttendedEvents && userProfile.pastAttendedEvents.length > 0 ? (
@@ -196,6 +201,7 @@ import { auth } from '../services/FirebaseConfig';
                                 key={event.id} 
                                 event={event} 
                                 onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
+                                styles={styles} // -> Stilleri EventListItem'e gönder
                             />
                         ))
                     ) : (
@@ -214,53 +220,30 @@ import { auth } from '../services/FirebaseConfig';
     );
 };
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f5f5' },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    idCard: { flexDirection: 'row', backgroundColor: 'white', padding: 20, margin: 16, borderRadius: 12, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 5, alignItems: 'center' },
-    profileImage: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: '#007AFF' },
-    cameraIcon: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#007AFF', padding: 6, borderRadius: 15 },
+// Stilleri bir fonksiyon haline getiriyoruz
+const getStyles = (theme) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background },
+    idCard: { flexDirection: 'row', backgroundColor: theme.card, padding: 20, margin: 16, borderRadius: 12, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 5, alignItems: 'center' },
+    profileImage: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: theme.primary },
+    cameraIcon: { position: 'absolute', bottom: 0, right: 0, backgroundColor: theme.primary, padding: 6, borderRadius: 15 },
     userInfo: { flex: 1, marginLeft: 20 },
-    userName: { fontSize: 22, fontWeight: 'bold', marginBottom: 8 },
-    userInfoText: { fontSize: 14, color: '#666', marginBottom: 4 },
-    section: { backgroundColor: 'white', marginHorizontal: 16, marginBottom: 16, borderRadius: 12, padding: 16 },
-    sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
-    listItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-    listItemText: { fontSize: 16 },
-    roleText: { fontSize: 14, color: '#888', fontStyle: 'italic' },
-    emptyText: { fontSize: 14, color: '#888', textAlign: 'center', paddingVertical: 20 },
+    userName: { fontSize: 22, fontWeight: 'bold', marginBottom: 8, color: theme.text },
+    userInfoText: { fontSize: 14, color: theme.subtext, marginBottom: 4 },
+    section: { backgroundColor: theme.card, marginHorizontal: 16, marginBottom: 16, borderRadius: 12, padding: 16 },
+    sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12, color: theme.text },
+    listItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.border },
+    listItemText: { fontSize: 16, color: theme.text },
+    roleText: { fontSize: 14, color: theme.subtext, fontStyle: 'italic' },
+    emptyText: { fontSize: 14, color: theme.subtext, textAlign: 'center', paddingVertical: 20 },
     editProfileButton: { flexDirection: 'row', backgroundColor: '#5856D6', margin: 16, paddingVertical: 15, borderRadius: 12, justifyContent: 'center', alignItems: 'center', elevation: 3 },
     editProfileButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16, marginLeft: 8 },
-    eventListItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
-    },
-    eventClubImage: {
-        width: 40,
-        height: 40,
-        borderRadius: 8,
-        marginRight: 12,
-        backgroundColor: '#e0e0e0',
-    },
-    eventInfo: {
-        flex: 1,
-    },
-    eventDescription: {
-        fontSize: 16,
-        fontWeight: '500',
-    },
-    eventClubName: {
-        fontSize: 12,
-        color: 'gray',
-    },
-    eventDate: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#007AFF',
-    },
+    eventListItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.border },
+    eventClubImage: { width: 40, height: 40, borderRadius: 8, marginRight: 12, backgroundColor: theme.border },
+    eventInfo: { flex: 1 },
+    eventDescription: { fontSize: 16, fontWeight: '500', color: theme.text },
+    eventClubName: { fontSize: 12, color: theme.subtext },
+    eventDate: { fontSize: 14, fontWeight: '600', color: theme.primary },
 });
 
 export default ProfileScreen;

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -70,14 +71,13 @@ public class EventService {
 
     public List<EventSubmissionResponse> getEventSubmissions(Long eventId, String adminFirebaseUid) {
         Event event = eventRepository.findById(eventId).orElseThrow(() -> new RuntimeException("Event not found."));
-        // Yetki kontrolü
         findMembership(adminFirebaseUid, event.getClub().getId(), Role.OWNER, Role.MANAGER);
 
         return event.getFormQuestions().stream().map(question -> {
             EventSubmissionResponse submissionResponse = new EventSubmissionResponse();
             submissionResponse.setQuestionText(question.getQuestionText());
 
-            List<EventSubmissionResponse.UserAnswer> userAnswers = eventAttendeeRepository.findAllByEvent(event).stream()
+            List<EventSubmissionResponse.UserAnswer> userAnswers = event.getAttendees().stream()
                     .flatMap(attendee -> attendee.getAnswers().stream())
                     .filter(answer -> answer.getQuestion().getId().equals(question.getId()))
                     .map(answer -> {
@@ -213,18 +213,45 @@ public class EventService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public void removeAttendee(Long eventId, Long userIdToRemove, String adminFirebaseUid) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found."));
+
+        // Yetki Kontrolü: İşlemi yapan kişinin kulüp yöneticisi olduğundan emin ol
+        findMembership(adminFirebaseUid, event.getClub().getId(), Role.OWNER, Role.MANAGER);
+
+        User userToRemove = userRepository.findById(userIdToRemove)
+                .orElseThrow(() -> new RuntimeException("Çıkarılacak kullanıcı bulunamadı."));
+
+        // Silinecek katılım kaydını bul
+        EventAttendee attendanceToRemove = eventAttendeeRepository.findByUserAndEvent(userToRemove, event)
+                .orElseThrow(() -> new IllegalStateException("Kullanıcı zaten bu etkinliğe katılmıyor."));
+
+        // Loglama (silmeden önce)
+        String adminName = userRepository.findByFirebaseUid(adminFirebaseUid).get().getName();
+        String removedUserName = userToRemove.getName();
+        String action = String.format("'%s', '%s' adlı kullanıcıyı '%s...' etkinliğinden çıkardı.",
+                adminName,
+                removedUserName,
+                event.getDescription().substring(0, Math.min(event.getDescription().length(), 20)));
+        logService.logClubAction(event.getClub().getId(), adminFirebaseUid, action);
+
+        // Katılım kaydını sil. Cascade ayarları sayesinde, bu işlem
+        // bu katılımcının tüm form cevaplarını da otomatik olarak silecektir.
+        eventAttendeeRepository.delete(attendanceToRemove);
+    }
+
     // DTO MAPPING HELPERS
     private EventSummaryResponse mapEventToSummaryDto(Event event) {
         EventSummaryResponse dto = new EventSummaryResponse();
         dto.id = event.getId();
         dto.description = event.getDescription();
         dto.eventDate = event.getEventDate();
-        dto.eventPictureUrl = event.getPictureURL();
+        dto.clubProfilePictureUrl = event.getClub().getProfilePictureUrl();
         if (event.getClub() != null) {
             dto.clubId = event.getClub().getId();
             dto.clubName = event.getClub().getName();
-
-
         }
         return dto;
     }
@@ -233,9 +260,10 @@ public class EventService {
         EventDetailResponse dto = new EventDetailResponse();
         dto.setId(event.getId());
         dto.setDescription(event.getDescription());
+        dto.setPictureUrl(event.getPictureURL());
         dto.setEventDate(event.getEventDate());
-        dto.setClubProfilePictureUrl(event.getPictureURL());
         dto.setLocation(event.getLocation());
+
         if (event.getClub() != null) {
             ClubSummaryResponse clubDto = new ClubSummaryResponse();
             clubDto.setId(event.getClub().getId());
@@ -248,18 +276,28 @@ public class EventService {
             dto.setCreator(mapUserToSummaryDto(event.getCreator()));
         }
 
-        if (event.getAttendees() != null) {
-            dto.setAttendees(event.getAttendees().stream()
-                    .map(attendee -> mapUserToSummaryDto(attendee.getUser()))
-                    .collect(Collectors.toList()));
+        ClubMember membership = clubMemberRepository.findByClubIdAndUserId(event.getClub().getId(), currentUser.getId()).orElse(null);
+        boolean canManage = membership != null && (membership.getRole() == Role.OWNER || membership.getRole() == Role.MANAGER);
+        dto.setCanCurrentUserManage(canManage);
+        dto.setCurrentUserMemberOfClub(membership != null && membership.getStatus() == MembershipStatus.APPROVED);
 
+        if (event.getAttendees() != null) {
             dto.setAttendeeCount(event.getAttendees().size());
             dto.setCurrentUserAttending(event.getAttendees().stream()
                     .anyMatch(attendee -> attendee.getUser().getId().equals(currentUser.getId())));
+
+            // Sadece yetkililer detaylı katılımcı listesini ve cevapları görür
+            dto.setAttendees(new ArrayList<>()); // Önce boş bir liste oluştur
+            if (canManage) {
+                dto.setAttendees(event.getAttendees().stream()
+                        .map(this::mapAttendeeToResponse)
+                        .collect(Collectors.toList()));
+            }
         } else {
             dto.setAttendeeCount(0);
             dto.setCurrentUserAttending(false);
         }
+
         if (event.getFormQuestions() != null) {
             dto.setFormQuestions(event.getFormQuestions().stream().map(q -> {
                 EventFormQuestionResponse qDto = new EventFormQuestionResponse();
@@ -269,9 +307,6 @@ public class EventService {
                 return qDto;
             }).collect(Collectors.toList()));
         }
-        ClubMember membership = clubMemberRepository.findByClubIdAndUserId(event.getClub().getId(), currentUser.getId()).orElse(null);
-        dto.setCanCurrentUserManage(membership != null && (membership.getRole() == Role.OWNER || membership.getRole() == Role.MANAGER));
-        dto.setCurrentUserMemberOfClub(membership != null && membership.getStatus() == MembershipStatus.APPROVED);
 
         return dto;
     }
@@ -306,5 +341,22 @@ public class EventService {
 
         throw new SecurityException("User does not have the required role for this action.");
     }
+    private EventAttendeeResponse mapAttendeeToResponse(EventAttendee attendee) {
+        EventAttendeeResponse response = new EventAttendeeResponse();
+        response.setUser(mapUserToSummaryDto(attendee.getUser()));
+        response.setJoinedAt(attendee.getJoinedAt());
+
+        if (attendee.getAnswers() != null) {
+            response.setFormAnswers(attendee.getAnswers().stream().map(answer -> {
+                AnswerResponse answerDto = new AnswerResponse();
+                answerDto.setQuestionText(answer.getQuestion().getQuestionText());
+                answerDto.setAnswerText(answer.getAnswerText());
+                return answerDto;
+            }).collect(Collectors.toList()));
+        }
+        return response;
+    }
+
+
 
 }

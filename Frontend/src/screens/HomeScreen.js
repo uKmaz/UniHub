@@ -1,32 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-    View, 
-    Text, 
-    StyleSheet, 
-    FlatList, 
-    ActivityIndicator, 
-    SafeAreaView, 
-    Image, 
-    TouchableOpacity,
-    RefreshControl,
-    Dimensions,
-    Switch
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, SafeAreaView, Image, TouchableOpacity, RefreshControl, Dimensions, Switch } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import api from '../services/ApiService';
+import { useTheme } from '../context/ThemeContext'; // -> TEMA İÇİN IMPORT
 
 const { width } = Dimensions.get('window');
 
 const HomeScreen = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const { theme } = useTheme(); // -> Temayı al
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
-    const [filterMyClubs, setFilterMyClubs] = useState(false); // Filtre state'i
+    const [filterMyClubs, setFilterMyClubs] = useState(false);
 
     const fetchPosts = useCallback(async () => {
-        // Yenileme başlamıyorsa ana yüklemeyi göster
         if (!refreshing) {
             setLoading(true);
         }
@@ -42,7 +31,7 @@ const HomeScreen = () => {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [filterMyClubs, t]); // Filtre veya dil değiştiğinde fonksiyon yeniden oluşur
+    }, [filterMyClubs, t]); // -> DÜZELTME: 't' fonksiyonu bağımlılıklara eklendi
 
     // Filtre durumu değiştiğinde verileri yeniden çek
     useEffect(() => {
@@ -85,10 +74,8 @@ const HomeScreen = () => {
                 <FlatList
                     horizontal
                     data={item.pictureURLs}
-                    keyExtractor={(url, index) => `${item.id}-image-${index}`}
-                    renderItem={({ item: url }) => (
-                        <Image source={{ uri: url }} style={styles.postImage} />
-                    )}
+                    keyExtractor={(url) => url}
+                    renderItem={({ item: url }) => <Image source={{ uri: url }} style={styles.postImage} />}
                     pagingEnabled
                     showsHorizontalScrollIndicator={false}
                 />
@@ -99,7 +86,7 @@ const HomeScreen = () => {
             </View>
 
             <View style={styles.actionsContainer}>
-                <TouchableOpacity onPress={() => handleToggleLike(item.id)} style={styles.likeButton}>
+                <TouchableOpacity onPress={() => handleToggleLike(item.id)}>
                     <Text style={item.isLikedByCurrentUser ? styles.likedText : styles.likeText}>
                         ❤️ {t('like')}
                     </Text>
@@ -109,8 +96,10 @@ const HomeScreen = () => {
         </View>
     );
 
+    const styles = getStyles(theme); // -> Stilleri temaya göre oluştur
+
     if (loading && !refreshing) {
-        return <View style={styles.center}><ActivityIndicator size="large" color="#007AFF" /></View>;
+        return <View style={styles.center}><ActivityIndicator size="large" color={theme.primary} /></View>;
     }
 
     return (
@@ -145,22 +134,23 @@ const HomeScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f0f2f5' },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 50 },
-    filterContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#eee' },
-    filterText: { fontSize: 16 },
-    postContainer: { backgroundColor: '#fff', marginVertical: 8 },
+// Stilleri bir fonksiyon haline getiriyoruz
+const getStyles = (theme) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background },
+    filterContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border },
+    filterText: { fontSize: 16, color: theme.text },
+    postContainer: { backgroundColor: theme.card, marginVertical: 8 },
     postHeader: { padding: 12 },
-    postClubName: { fontSize: 16, fontWeight: 'bold' },
+    postClubName: { fontSize: 16, fontWeight: 'bold', color: theme.text },
     postImage: { width: width, height: width },
     postContent: { padding: 12 },
-    postDescription: { fontSize: 14 },
-    actionsContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#eee' },
+    postDescription: { fontSize: 14, color: theme.text },
+    actionsContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: theme.border },
     likeButton: {},
-    likeText: { fontSize: 16, color: '#555' },
-    likedText: { fontSize: 16, color: 'red', fontWeight: 'bold' },
-    likeCount: { fontSize: 14, color: '#888' },
+    likeText: { fontSize: 16, color: theme.subtext },
+    likedText: { fontSize: 16, color: theme.destructive, fontWeight: 'bold' },
+    likeCount: { fontSize: 14, color: theme.subtext },
 });
 
 export default HomeScreen;

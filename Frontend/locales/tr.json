@@ -63,9 +63,12 @@
     "facultyLabel": "Fakülte",
     "departmentLabel": "Bölüm",
     "eventAttendSuccess": "Etkinliğe başarıyla katıldınız!",
+    "eventLeaveFail": "Etkinlikten ayrılırken bir sorun oluştu",
+    "eventLeaveSuccess": "Etkinlikten başarıyla ayrılındı",
     "eventAttendError": "Bu etkinliğe katılırken bir sorun oluştu.",
     "eventDetailTitle": "Etkinlik Detayları",
     "eventAlreadyAttended":"Bu etkinliğe zaten katıldınız",
+    "leaveEventButton" : "Etkinlikten Ayrıl",
     "attendEventButton": "Bu Etkinliğe Katıl",
     "loadingEventsError": "Etkinlikler yüklenirken bir sorun oluştu.",
     "noUpcomingEvents": "Yaklaşan etkinlik bulunmuyor.",
@@ -202,7 +205,31 @@
     "leaveClubConfirmMessage": "'{{clubName}}' kulübünden ayrılmak istediğinize emin misiniz? Bu kulüpteki tüm etkinlik katılımlarınız da iptal edilecektir.",
     "leaveClubSuccess": "Kulüpten başarıyla ayrıldınız.",
     "leaveClubError": "Kulüpten ayrılırken bir sorun oluştu.",
-    "ownerCannotLeaveError": "Kulüp sahibi kulüpten ayrılamaz."
+    "ownerCannotLeaveError": "Kulüp sahibi kulüpten ayrılamaz.",
+    "formAnswers": "Form Cevapları",
+    "noAnswers": "Bu katılımcı forma cevap vermedi.",
+    "viewSubmissions": "Form Sonuçlarını Görüntüle",
+    "submissionsTitle": "Form Cevapları",
+    "downloadSubmissions": "Cevapları İndir",
+    "noSubmissions": "Bu etkinlik için henüz bir form cevabı bulunmuyor.",
+    "fileReadyTitle": "Dosyanız Hazır",
+    "fileReadyMessage": "Etkinlik cevapları başarıyla dışa aktarıldı.",
+    "removeFromEvent": "Etkinlikten Çıkar",
+    "confirmRemoveAttendeeTitle": "Katılımcıyı Çıkar",
+    "confirmRemoveAttendeeMessage": "'{{attendeeName}}' kişisini etkinlikten çıkarmak istediğinize emin misiniz? Bu işlem geri alınamaz.",
+    "attendeeRemoveSuccess": "Katılımcı başarıyla çıkarıldı.",
+    "attendeeRemoveError": "Katılımcı çıkarılırken bir hata oluştu.",
+    "darkMode": "Karanlık Mod",
+    "searchPlaceholder": "Kulüp ara...",
+    "filters": "Filtreler",
+    "topByMembers": "En Popüler",
+    "topByEvents": "En Aktif",
+    "discoverNewClubs": "Yeni Kulüpler Keşfet",
+    "applyFilters": "Filtreleri Uygula",
+    "resetFilters": "Sıfırla",
+    "allOptions": "Hepsi"
+
+    
     
 
 

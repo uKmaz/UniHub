@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
     View, 
     Text, 
@@ -13,28 +13,17 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Picker } from '@react-native-picker/picker';
 import api from '../services/ApiService';
-
-// Veri yapısı
-const universityData = [
-    {
-        name: 'Dokuz Eylül Üniversitesi',
-        faculties: [
-            { name: 'Mühendislik Fakültesi', departments: ['Bilgisayar Mühendisliği', 'Makine Mühendisliği', 'İnşaat Mühendisliği', 'Elektrik-Elektronik Mühendisliği'] },
-            { name: 'İktisadi ve İdari Bilimler Fakültesi', departments: ['İşletme', 'İktisat', 'Uluslararası İlişkiler', 'Ekonometri'] },
-            { name: 'Tıp Fakültesi', departments: ['Tıp'] },
-            { name: 'Fen Fakültesi', departments: ['Matematik', 'Fizik', 'Kimya', 'Biyoloji'] },
-        ]
-    },
-];
+import { universityData } from '../data/universityData'; // -> YENİ IMPORT
 
 const CreateClubScreen = ({ navigation }) => {
     const { t } = useTranslation();
     const [name, setName] = useState('');
-    const [shortName, setShortName] = useState(''); // Kısaltma için state
+    const [shortName, setShortName] = useState('');
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
-    const [errors, setErrors] = useState({}); // Hatalar için state
+    const [errors, setErrors] = useState({});
 
+    // Artık veriyi import ettiğimiz dosyadan alıyoruz
     const [selection, setSelection] = useState({
         university: universityData[0].name,
         faculty: universityData[0].faculties[0].name,
@@ -44,7 +33,6 @@ const CreateClubScreen = ({ navigation }) => {
     const [availableFaculties, setAvailableFaculties] = useState(universityData[0].faculties);
     const [availableDepartments, setAvailableDepartments] = useState(universityData[0].faculties[0].departments);
 
-    // --- HATA DÜZELTMESİ: Fonksiyon bileşenin içine taşındı ---
     const validateForm = () => {
         const newErrors = {};
         if (name.length < 3 || name.length > 50) newErrors.name = t('validation.clubNameLength');
@@ -53,7 +41,6 @@ const CreateClubScreen = ({ navigation }) => {
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
-    // ---------------------------------------------------------
 
     const handleUniversityChange = (uniName) => {
         const university = universityData.find(u => u.name === uniName);

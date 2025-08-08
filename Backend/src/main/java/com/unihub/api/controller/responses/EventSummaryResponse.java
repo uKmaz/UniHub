@@ -9,5 +9,5 @@ public class EventSummaryResponse {
     public LocalDateTime eventDate;
     public String clubName;
     public Long clubId;
-    public String eventPictureUrl;
+    public String clubProfilePictureUrl;
 }
