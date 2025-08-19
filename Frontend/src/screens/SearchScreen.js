@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TextInput, FlatList, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TextInput, FlatList, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../context/ThemeContext';
 import api from '../services/ApiService';
@@ -15,28 +14,24 @@ const SearchScreen = ({ navigation, route }) => {
     const [searchResults, setSearchResults] = useState([]);
     const [discoveryData, setDiscoveryData] = useState({ topByMembers: [], topByEvents: [], randomClubs: [] });
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [activeTab, setActiveTab] = useState('members');
     const [filters, setFilters] = useState({});
 
-    useEffect(() => {
-        if (route.params?.appliedFilters) {
-            setFilters(route.params.appliedFilters);
+    const fetchData = async () => {
+        try {
+            const params = new URLSearchParams(Object.entries(filters).filter(([_, v]) => v != null)).toString();
+            const response = await api.get(`/clubs/discover?${params}`);
+            setDiscoveryData(response.data);
+        } catch (error) {
+            console.error("Keşfet verisi çekilemedi:", error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
         }
-    }, [route.params?.appliedFilters]);
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const params = new URLSearchParams(Object.entries(filters).filter(([_, v]) => v != null)).toString();
-                const response = await api.get(`/clubs/discover?${params}`);
-                setDiscoveryData(response.data);
-            } catch (error) {
-                console.error("Keşfet verisi çekilemedi:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchData();
     }, [filters]);
 
@@ -49,9 +44,13 @@ const SearchScreen = ({ navigation, route }) => {
                 setSearchResults([]);
             }
         }, 300);
-
         return () => clearTimeout(handler);
     }, [searchTerm]);
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchData();
+    };
 
     const renderTopClubItem = ({ item }) => (
         <TouchableOpacity style={styles.topClubItem} onPress={() => navigation.navigate('ClubDetail', { clubId: item.id, clubName: item.name })}>
@@ -69,8 +68,13 @@ const SearchScreen = ({ navigation, route }) => {
         </TouchableOpacity>
     );
 
-    if (loading) {
-        return <View style={styles.center}><ActivityIndicator size="large" color={theme.primary} /></View>;
+    if (loading && !refreshing) {
+        return (
+            <View style={styles.center}>
+                <ActivityIndicator size="large" color={theme.primary} />
+                <Text style={styles.loadingText}>{t('loading')}</Text>
+            </View>
+        );
     }
 
     return (
@@ -100,7 +104,11 @@ const SearchScreen = ({ navigation, route }) => {
                     contentContainerStyle={{ alignItems: 'center' }}
                 />
             ) : (
-                <ScrollView>
+                <ScrollView
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} colors={[theme.primary]} />
+                    }
+                >
                     <View style={styles.tabContainer}>
                         <TouchableOpacity onPress={() => setActiveTab('members')} style={[styles.tab, activeTab === 'members' && styles.activeTab]}>
                             <Text style={[styles.tabText, activeTab === 'members' && styles.activeTabText]}>{t('topByMembers')}</Text>
@@ -124,7 +132,6 @@ const SearchScreen = ({ navigation, route }) => {
                 </ScrollView>
             )}
 
-            {/* --- YENİ EKLENEN BUTON --- */}
             <TouchableOpacity 
                 style={styles.createClubButton} 
                 onPress={() => navigation.navigate('CreateClub')}
@@ -139,6 +146,7 @@ const SearchScreen = ({ navigation, route }) => {
 const getStyles = (theme) => StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.background },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background },
+    loadingText: { marginTop: 10, fontSize: 16, color: theme.subtext },
     searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.card, borderRadius: 10, margin: 16, paddingHorizontal: 10, borderWidth: 1, borderColor: theme.border },
     searchIcon: { marginRight: 10 },
     searchInput: { flex: 1, height: 44, color: theme.text, fontSize: 16 },
@@ -157,29 +165,8 @@ const getStyles = (theme) => StyleSheet.create({
     randomClubOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)' },
     randomClubName: { position: 'absolute', bottom: 30, left: 15, color: 'white', fontSize: 22, fontWeight: 'bold', textShadowColor: 'rgba(0, 0, 0, 0.75)', textShadowOffset: {width: -1, height: 1}, textShadowRadius: 10 },
     randomClubShortName: { position: 'absolute', bottom: 10, left: 15, color: 'white', fontSize: 14, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 6, borderRadius: 4 },
-    // --- YENİ STİLLER ---
-    createClubButton: {
-        position: 'absolute',
-        bottom: 30,
-        right: 20,
-        flexDirection: 'row',
-        backgroundColor: theme.primary,
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: 30,
-        alignItems: 'center',
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-    },
-    createClubButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginLeft: 8,
-    }
+    createClubButton: { position: 'absolute', bottom: 30, right: 20, flexDirection: 'row', backgroundColor: theme.primary, paddingVertical: 12, paddingHorizontal: 20, borderRadius: 30, alignItems: 'center', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84 },
+    createClubButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold', marginLeft: 8 }
 });
 
 export default SearchScreen;

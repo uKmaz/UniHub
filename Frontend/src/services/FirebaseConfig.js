@@ -2,19 +2,17 @@ import { initializeApp } from 'firebase/app';
 import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
-// firebase-login-tester.html dosyasında kullandığın firebaseConfig objesinin aynısı.
-// Firebase Console -> Project settings -> General sekmesinden alabilirsin.
 const firebaseConfig = {
-    apiKey: "AIzaSyAYpNhpP2L5LPbdFXy9n3g7VAQ1sa_AE2M",
-    authDomain: "unihub-aea98.firebaseapp.com",
-    projectId: "unihub-aea98",
-    storageBucket: "unihub-aea98.firebasestorage.app",
-    messagingSenderId: "612135067573",
-    appId: "1:612135067573:web:38100edf36e672542303fc",
-    measurementId: "G-N3KXV957T8"
+  apiKey: "AIzaSyDImQI0HPjaVeoIMLOdjEJUVN2szWHCeeI",
+  authDomain: "unihub-n.firebaseapp.com",
+  projectId: "unihub-n",
+  storageBucket: "unihub-n.firebasestorage.app",
+  messagingSenderId: "9151954060",
+  appId: "1:9151954060:web:f69a21f2e36a50256b8fa9",
+  measurementId: "G-7RH3SC5XST"
 };
 
-// Firebase'i başlat
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
 export const auth = initializeAuth(app, {

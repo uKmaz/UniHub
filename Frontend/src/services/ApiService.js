@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { auth } from './FirebaseConfig';
 
-const API_URL = 'http://192.168.1.101:8080/api'; 
+const API_URL = 'https://unihub-backend-ilwv.onrender.com/api'; 
 
 const api = axios.create({
     baseURL: API_URL,
