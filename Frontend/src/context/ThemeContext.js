@@ -1,35 +1,35 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Renk paletlerini tanımla
+// Açık mod renkleri
 const lightColors = {
-    background: '#f0f2f5',
-    card: 'white',
-    text: '#1c1c1e',
-    subtext: '#6e6e72',
-    border: '#e0e0e0',
-    primary: '#007AFF',
-    destructive: '#FF3B30',
+    background: '#f0f2f5', // Açık gri arka plan
+    card: 'white',         // Beyaz kartlar
+    text: '#1c1c1e',         // Neredeyse siyah metin
+    subtext: '#6e6e72',      // Gri alt metin
+    border: '#e0e0e0',       // Açık gri sınırlar
+    primary: '#007AFF',      // Mavi ana renk
+    destructive: '#FF3B30',  // Kırmızı tehlike rengi
 };
 
+// --- YENİ VE GELİŞTİRİLMİŞ KARANLIK MOD RENKLERİ ---
 const darkColors = {
-    background: '#000000',
-    card: '#1c1c1e',
-    text: '#ffffff',
-    subtext: '#8e8e93',
-    border: '#38383a',
-    primary: '#0A84FF',
-    destructive: '#FF453A',
+    background: '#121212', // Saf siyah yerine çok koyu bir gri (daha göz yormaz)
+    card: '#1E1E1E',         // Arka plandan biraz daha açık bir kart rengi
+    text: '#E1E1E1',         // Saf beyaz yerine hafif kırık beyaz (daha az parlama yapar)
+    subtext: '#A9A9A9',      // Daha iyi kontrast için daha açık bir gri alt metin
+    border: '#272727',       // Çok ince ve belli belirsiz bir sınır rengi
+    primary: '#0A84FF',      // Canlı bir mavi
+    destructive: '#FF453A',  // Canlı bir kırmızı
 };
 
 export const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-    const systemScheme = useColorScheme(); // Cihazın tema tercihini al
+    const systemScheme = useColorScheme();
     const [isDarkMode, setIsDarkMode] = useState(systemScheme === 'dark');
 
-    // Uygulama ilk açıldığında kaydedilmiş temayı yükle
     useEffect(() => {
         const loadTheme = async () => {
             const savedTheme = await AsyncStorage.getItem('theme');

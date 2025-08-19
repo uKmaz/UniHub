@@ -124,6 +124,8 @@
     "deleteAccount": "Delete Account",
     "deleteAccountConfirmTitle": "Permanently Delete Account",
     "deleteAccountConfirmMessage": "This action cannot be undone. All your data will be deleted. Are you sure?",
+    "reAuthTitle":"You are deleting your account!",
+    "reAuthMessage":"Are you sure ?",
     "accountDeleteSuccess": "Your account has been successfully deleted.",
     "accountDeleteError": "An error occurred while deleting your account.",
     "nameLength": "Name must be at least 2 characters.",
@@ -227,7 +229,41 @@
     "discoverNewClubs": "Discover new clubs",
     "applyFilters": "Apply Filters",
     "resetFilters": "Reset filters",
-    "allOptions": "All"
+    "allOptions": "All",
+    "allowNotifications": "Allow Notifications",
+    "editPostTitle": "Edit the post",
+    "editEventTitle": "Edit the event",
+    "edit": "Edit",
+    "postUpdateError": "Error while updating the post",
+    "eventUpdateError": "Error while updating the event",
+    "postUpdateSuccess": "Post has been succesfully updated",
+    "eventUpdateSuccess": "Event has been succesfully updated",
+    "deleteClub": "Delete the Club",
+    "dangerZone": "Danger Zone",
+    "deleteClubConfirmTitle": "Delete the club permanently",
+    "deleteClubConfirmMessage": "'{{clubName}}' are you sure that you want to delete the club? This action can not be taken back, everything about the club will be deleted with it.",
+    "clubDeleteSuccess": "Club has been succesfully deleted",
+    "clubDeleteError": "An error has occured while trying to delete the club.",
+     "clubLoadError": "Couldn't load club details.",
+    "withdrawRequest": "Withdraw request",
+    "withdrawRequestTitle": "Withdraw request",
+    "withdrawRequestMessage": "Are you sure that you want to withdraw your request",
+    "withdraw": "Withdraw",
+    "withdrawRequestSuccess": "Your request has been succesfully withdrawn",
+    "withdrawRequestError": "There was an error while withdrawing your request.",
+    "back": "Back",
+    "close": "Close",
+    "search": "Search",
+    "noResultsFound": "No result was found.",
+    "confirm": "Confirm",
+    "confirmTransferOwnershipTitle": "Transfer Ownership",
+    "confirmTransferOwnershipMessage": "Are you sure you want to make '{{memberName}}' the new owner of the club? You will become a manager.",
+    "ownershipTransferSuccess": "Ownership successfully transferred to '{{memberName}}'.",
+    "ownershipTransferError": "An error occurred while transferring ownership.",
+    "transferButton": "Transfer ownership"
+
+  
+
 
 
     

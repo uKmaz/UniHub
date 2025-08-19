@@ -1,15 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react'; // -> useState ve useEffect eklendi
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert, Switch } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { signOut, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { auth } from '../services/FirebaseConfig';
 import api from '../services/ApiService';
 import { useTheme } from '../context/ThemeContext';
+import * as Notifications from 'expo-notifications';
+import { registerForPushNotificationsAsync, unregisterFromPushNotificationsAsync } from '../services/NotificationService';
 
 const SettingsScreen = () => {
     const { t, i18n } = useTranslation();
     const { isDarkMode, theme, toggleTheme } = useTheme();
+    const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const isTurkish = i18n.language === 'tr';
+
+    useEffect(() => {
+        const checkNotificationStatus = async () => {
+            const { status } = await Notifications.getPermissionsAsync();
+            setNotificationsEnabled(status === 'granted');
+        };
+        checkNotificationStatus();
+    }, []);
+
+    const handleNotificationToggle = async (newValue) => {
+        if (newValue) {
+            const success = await registerForPushNotificationsAsync();
+            setNotificationsEnabled(success);
+        } else {
+            const success = await unregisterFromPushNotificationsAsync();
+            if (success) {
+                setNotificationsEnabled(false);
+            }
+        }
+    };
 
     const changeLanguage = (lang) => {
         i18n.changeLanguage(lang);
@@ -102,7 +125,17 @@ const SettingsScreen = () => {
                     value={isDarkMode}
                     onValueChange={toggleTheme}
                     trackColor={{ false: "#767577", true: theme.primary }}
-                    thumbColor={isDarkMode ? "#f4f3f4" : "#f4f3f4"}
+                    thumbColor={"#f4f3f4"}
+                />
+            </View>
+
+            <View style={styles.settingRow}>
+                <Text style={styles.settingLabel}>{t('allowNotifications')}</Text>
+                <Switch
+                    value={notificationsEnabled}
+                    onValueChange={handleNotificationToggle}
+                    trackColor={{ false: "#767577", true: theme.primary }}
+                    thumbColor={"#f4f3f4"}
                 />
             </View>
 

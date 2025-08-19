@@ -10,17 +10,37 @@ import api from '../services/ApiService';
 const EventSubmissionsScreen = ({ route, navigation }) => {
     const { eventId } = route.params;
     const { t } = useTranslation();
-    const [submissions, setSubmissions] = useState([]);
+    const [groupedData, setGroupedData] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // --- NİHAİ DÜZELTME: useFocusEffect'in doğru kullanımı ---
     useFocusEffect(
         useCallback(() => {
             const fetchData = async () => {
                 setLoading(true);
                 try {
                     const response = await api.get(`/events/${eventId}/submissions`);
-                    setSubmissions(response.data);
+                    const submissions = response.data;
+
+                    // Kullanıcıya göre grupla
+                    const userMap = {};
+                    submissions.forEach(submission => {
+                        submission.userAnswers.forEach(answer => {
+                            if (!userMap[answer.userName]) {
+                                userMap[answer.userName] = [];
+                            }
+                            userMap[answer.userName].push({
+                                question: submission.questionText,
+                                answer: answer.answerText
+                            });
+                        });
+                    });
+
+                    const groupedArray = Object.keys(userMap).map(user => ({
+                        userName: user,
+                        answers: userMap[user]
+                    }));
+
+                    setGroupedData(groupedArray);
                 } catch (error) {
                     console.error("Cevaplar çekilemedi:", error);
                 } finally {
@@ -33,13 +53,13 @@ const EventSubmissionsScreen = ({ route, navigation }) => {
     );
 
     const handleDownload = async () => {
-        let csvString = "Soru,Kullanıcı,Cevap\n";
-        submissions.forEach(submission => {
-            submission.userAnswers.forEach(answer => {
-                const question = `"${submission.questionText.replace(/"/g, '""')}"`;
-                const user = `"${answer.userName.replace(/"/g, '""')}"`;
-                const answerText = `"${answer.answerText.replace(/"/g, '""')}"`;
-                csvString += `${question},${user},${answerText}\n`;
+        let csvString = "Kullanıcı,Soru,Cevap\n";
+        groupedData.forEach(userData => {
+            userData.answers.forEach(item => {
+                const user = `"${userData.userName.replace(/"/g, '""')}"`;
+                const question = `"${item.question.replace(/"/g, '""')}"`;
+                const answer = `"${item.answer.replace(/"/g, '""')}"`;
+                csvString += `${user},${question},${answer}\n`;
             });
         });
 
@@ -56,12 +76,12 @@ const EventSubmissionsScreen = ({ route, navigation }) => {
     useLayoutEffect(() => {
         navigation.setOptions({
             headerRight: () => (
-                <TouchableOpacity onPress={handleDownload} style={{ marginRight: 15 }} disabled={submissions.length === 0}>
-                    <Ionicons name="download-outline" size={24} color={submissions.length > 0 ? "#007AFF" : "gray"} />
+                <TouchableOpacity onPress={handleDownload} style={{ marginRight: 15 }} disabled={groupedData.length === 0}>
+                    <Ionicons name="download-outline" size={24} color={groupedData.length > 0 ? "#007AFF" : "gray"} />
                 </TouchableOpacity>
             ),
         });
-    }, [navigation, submissions]);
+    }, [navigation, groupedData]);
 
     if (loading) {
         return <View style={styles.center}><ActivityIndicator size="large" /></View>;
@@ -70,15 +90,15 @@ const EventSubmissionsScreen = ({ route, navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <FlatList
-                data={submissions}
-                keyExtractor={(item) => item.questionText}
+                data={groupedData}
+                keyExtractor={(item) => item.userName}
                 renderItem={({ item }) => (
                     <View style={styles.section}>
-                        <Text style={styles.questionTitle}>{item.questionText}</Text>
-                        {item.userAnswers.map((answer, index) => (
-                            <View key={index} style={styles.answerRow}>
-                                <Text style={styles.userName}>{answer.userName}:</Text>
-                                <Text style={styles.answerText}>{answer.answerText}</Text>
+                        <Text style={styles.userName}>{item.userName}</Text>
+                        {item.answers.map((ans, idx) => (
+                            <View key={idx} style={styles.answerRow}>
+                                <Text style={styles.question}>{ans.question}:</Text>
+                                <Text style={styles.answer}>{ans.answer}</Text>
                             </View>
                         ))}
                     </View>
@@ -93,10 +113,10 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#f0f2f5' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     section: { backgroundColor: 'white', margin: 16, borderRadius: 12, padding: 16 },
-    questionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 8 },
+    userName: { fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#007AFF' },
     answerRow: { flexDirection: 'row', marginBottom: 5 },
-    userName: { fontWeight: '600', marginRight: 8 },
-    answerText: { flex: 1 },
+    question: { fontWeight: '600', marginRight: 4, flex: 0.5 },
+    answer: { flex: 1 },
     emptyText: { textAlign: 'center', color: 'gray', marginTop: 50 },
 });
 

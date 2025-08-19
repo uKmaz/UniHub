@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, TouchableOpacity, Animated } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -5,10 +6,14 @@ import { useTranslation } from 'react-i18next';
 import api from '../services/ApiService';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useTheme } from '../context/ThemeContext'; // -> TEMA İÇİN IMPORT
 
 const ClubLogScreen = ({ route }) => {
     const { clubId } = route.params;
     const { t } = useTranslation();
+    const { theme } = useTheme(); // -> Temayı al
+    const styles = getStyles(theme); // -> Stilleri temaya göre oluştur
+
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentUserRole, setCurrentUserRole] = useState(null);
@@ -77,7 +82,7 @@ const ClubLogScreen = ({ route }) => {
     };
 
     if (loading) {
-        return <View style={styles.center}><ActivityIndicator size="large" /></View>;
+        return <View style={styles.center}><ActivityIndicator size="large" color={theme.primary} /></View>;
     }
 
     return (
@@ -94,14 +99,14 @@ const ClubLogScreen = ({ route }) => {
     );
 };
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f0f2f5' },
+const getStyles = (theme) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    logItem: { backgroundColor: 'white', padding: 15, borderBottomWidth: 1, borderBottomColor: '#eee' },
-    logAction: { fontSize: 16, fontWeight: '500', marginBottom: 4 },
-    logMeta: { fontSize: 12, color: 'gray' },
-    emptyText: { textAlign: 'center', color: 'gray', marginTop: 50 },
-    deleteButton: { backgroundColor: '#FF3B30', justifyContent: 'center', alignItems: 'flex-end', width: 80, paddingRight: 20 },
+    logItem: { backgroundColor: theme.card, padding: 15, borderBottomWidth: 1, borderBottomColor: theme.border },
+    logAction: { fontSize: 16, fontWeight: '500', marginBottom: 4, color: theme.text },
+    logMeta: { fontSize: 12, color: theme.subtext },
+    emptyText: { textAlign: 'center', color: theme.subtext, marginTop: 50 },
+    deleteButton: { backgroundColor: theme.destructive, justifyContent: 'center', alignItems: 'flex-end', width: 80, paddingRight: 20 },
 });
 
 export default ClubLogScreen;
