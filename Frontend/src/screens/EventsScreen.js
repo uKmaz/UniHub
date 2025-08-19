@@ -51,14 +51,12 @@ const EventsScreen = ({ navigation }) => {
     const styles = getEventsStyles(theme);
 
     const renderEventItem = ({ item }) => (
-        
         <TouchableOpacity 
             style={styles.eventBlock}
             onPress={() => navigation.navigate('EventDetail', { eventId: item.id })}
         >
             <Image 
                 source={{ uri: item.clubProfilePictureUrl || 'https://placehold.co/100x100' }} 
-                
                 style={styles.clubImage} 
             />
             <View style={styles.eventInfo}>

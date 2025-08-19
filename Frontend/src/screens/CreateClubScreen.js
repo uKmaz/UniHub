@@ -13,8 +13,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Picker } from '@react-native-picker/picker';
 import api from '../services/ApiService';
-import { universityData } from '../data/universityData';
-import { useTheme } from '../context/ThemeContext';
+import { universityData } from '../data/universityData'; // -> YENİ IMPORT
 
 const CreateClubScreen = ({ navigation }) => {
     const { t } = useTranslation();
@@ -23,9 +22,8 @@ const CreateClubScreen = ({ navigation }) => {
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
-    const { theme } = useTheme();
-    const styles = getStyles(theme);
 
+    // Artık veriyi import ettiğimiz dosyadan alıyoruz
     const [selection, setSelection] = useState({
         university: universityData[0].name,
         faculty: universityData[0].faculties[0].name,
@@ -37,9 +35,9 @@ const CreateClubScreen = ({ navigation }) => {
 
     const validateForm = () => {
         const newErrors = {};
-        if (name.length < 3 || name.length > 50) newErrors.name = t('clubNameLength');
-        if (shortName.length < 2 || shortName.length > 10) newErrors.shortName = t('clubShortNameLength');
-        if (description.length < 10 || description.length > 500) newErrors.description = t('clubDescriptionLength');
+        if (name.length < 3 || name.length > 50) newErrors.name = t('validation.clubNameLength');
+        if (shortName.length < 2 || shortName.length > 10) newErrors.shortName = t('validation.clubShortNameLength');
+        if (description.length < 10 || description.length > 500) newErrors.description = t('validation.clubDescriptionLength');
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -163,27 +161,23 @@ const CreateClubScreen = ({ navigation }) => {
     );
 };
 
-const getStyles = (theme) => StyleSheet.create({
-
-    container: { flex: 1, backgroundColor: theme.background },
-
-    scrollContainer: { padding: 20, backgroundColor: theme.background },
-
-    title: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 24, color: theme.text },
-
-    input: { borderColor: theme.border, borderWidth: 1, borderRadius: 8, marginBottom: 4, paddingHorizontal: 15, paddingVertical: 12, backgroundColor: theme.card, fontSize: 16, textAlignVertical: 'top', color: theme.text },
-
-    label: { fontSize: 16, color: theme.text, marginBottom: 8, marginLeft: 4 },
-
-    pickerContainer: { borderColor: theme.border, borderWidth: 1, borderRadius: 8, marginBottom: 16, backgroundColor: theme.card, justifyContent: 'center' },
-
-    buttonContainer: { backgroundColor: theme.primary, paddingVertical: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
-
-    buttonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
-
-    errorText: { color: theme.destructive, alignSelf: 'flex-start', marginLeft: 5, marginBottom: 12 },
-
+const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#f5f5f5' },
+    scrollContainer: { padding: 20 },
+    title: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 24 },
+    input: { borderColor: '#ddd', borderWidth: 1, borderRadius: 8, marginBottom: 4, paddingHorizontal: 15, paddingVertical: 12, backgroundColor: '#fff', fontSize: 16, textAlignVertical: 'top' },
+    label: { fontSize: 16, color: '#666', marginBottom: 8, marginLeft: 4 },
+    pickerContainer: {
+        borderColor: '#ddd',
+        borderWidth: 1,
+        borderRadius: 8,
+        marginBottom: 16,
+        backgroundColor: '#fff',
+        justifyContent: 'center',
+    },
+    buttonContainer: { backgroundColor: '#007AFF', paddingVertical: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
+    buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+    errorText: { color: 'red', alignSelf: 'flex-start', marginLeft: 5, marginBottom: 12 },
 });
-
 
 export default CreateClubScreen;

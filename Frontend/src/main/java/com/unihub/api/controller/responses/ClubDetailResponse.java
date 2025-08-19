@@ -1,0 +1,19 @@
+package com.unihub.api.controller.responses;
+
+import java.util.List;
+
+public class ClubDetailResponse {
+    public Long id;
+    public String name;
+    public String shortName;
+    public String description;
+    public String profilePictureUrl;
+    public String university;
+    public String faculty;
+    public String department;
+    public String color;
+    public List<UserInClubResponse> members;
+    public List<PostSummaryResponse> posts;
+    public List<EventSummaryResponse> events;
+    public CurrentUserMembershipResponse currentUserMembership;
+}

@@ -59,22 +59,6 @@ const ProfileScreen = ({ navigation }) => {
 
     useFocusEffect(fetchUserProfile);
 
-    const EventListItem = ({ event, onPress }) => (
-        <TouchableOpacity style={styles.eventListItem} onPress={onPress}>
-            <Image 
-                source={{ uri: event.clubProfilePictureUrl || 'https://placehold.co/100' }} 
-                style={styles.eventClubImage}
-            />
-            <View style={styles.eventInfo}>
-                <Text style={styles.eventDescription} numberOfLines={1}>{event.description}</Text>
-                <Text style={styles.eventClubName}>{event.clubName}</Text>
-            </View>
-            <Text style={styles.eventDate}>
-                {new Date(event.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-            </Text>
-        </TouchableOpacity>
-    );
-
     const handlePhotoOptions = () => {
         if (!userProfile?.profilePictureUrl || userProfile.profilePictureUrl.includes('default_user_avatar.png')) {
             pickImage();
@@ -179,13 +163,6 @@ const ProfileScreen = ({ navigation }) => {
                         <Text style={styles.userName}>{userProfile.name} {userProfile.surname}</Text>
                         <Text style={styles.userInfoText}>{userProfile.email}</Text>
                         <Text style={styles.userInfoText}>{t('studentIdLabel')}{userProfile.studentID}</Text>
-
-                        <View style={styles.schoolInfoContainer}>
-                            <Ionicons name="school-outline" size={16} color={theme.subtext} />
-                            <Text style={styles.schoolInfoText} numberOfLines={2}>
-                                {userProfile.department}, {userProfile.faculty}
-                            </Text>
-                        </View>
                     </View>
                 </View>
                 <View style={styles.section}>
@@ -209,13 +186,13 @@ const ProfileScreen = ({ navigation }) => {
                                 key={event.id} 
                                 event={event} 
                                 onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
+                                styles={styles} // -> Stilleri EventListItem'e gönder
                             />
                         ))
                     ) : (
                         <Text style={styles.emptyText}>{t('noUpcomingEventsProfile')}</Text>
                     )}
                 </View>
-
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>{t('pastEvents')}</Text>
                      {userProfile.pastAttendedEvents && userProfile.pastAttendedEvents.length > 0 ? (
@@ -224,6 +201,7 @@ const ProfileScreen = ({ navigation }) => {
                                 key={event.id} 
                                 event={event} 
                                 onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
+                                styles={styles} // -> Stilleri EventListItem'e gönder
                             />
                         ))
                     ) : (
@@ -252,7 +230,6 @@ const getStyles = (theme) => StyleSheet.create({
     userInfo: { flex: 1, marginLeft: 20 },
     userName: { fontSize: 22, fontWeight: 'bold', marginBottom: 8, color: theme.text },
     userInfoText: { fontSize: 14, color: theme.subtext, marginBottom: 4 },
-    schoolInfoText:  { fontSize: 14, color: theme.subtext, marginBottom: 4 },
     section: { backgroundColor: theme.card, marginHorizontal: 16, marginBottom: 16, borderRadius: 12, padding: 16 },
     sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12, color: theme.text },
     listItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.border },

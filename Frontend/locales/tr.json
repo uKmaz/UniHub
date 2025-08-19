@@ -125,8 +125,6 @@
     "deleteAccountConfirmTitle": "Hesabı Kalıcı Olarak Sil",
     "deleteAccountConfirmMessage": "Bu işlem geri alınamaz. Tüm verileriniz silinecek. Emin misiniz?",
     "accountDeleteSuccess": "Hesabınız başarıyla silindi.",
-    "reAuthTitle":"Hesabınızı siliyorsunuz!",
-    "reAuthMessage":"Bunu yapmak istediğinizden emin misiniz ?",
     "accountDeleteError": "Hesap silinirken bir hata oluştu.",
     "nameLength": "İsim en az 2 karakter olmalıdır.",
     "surnameLength": "Soyisim en az 2 karakter olmalıdır.",
@@ -229,41 +227,7 @@
     "discoverNewClubs": "Yeni Kulüpler Keşfet",
     "applyFilters": "Filtreleri Uygula",
     "resetFilters": "Sıfırla",
-    "allOptions": "Hepsi",
-    "allowNotifications": "Bildirimlere İzin Ver",
-    "editPostTitle": "Gönderiyi Düzenle",
-    "editEventTitle": "Etkinliği Düzenle",
-    "edit": "Düzenle",
-    "postUpdateError": "Gönderi güncellenirken bir hata ile karşılaşıldı",
-    "eventUpdateError": "Etkinlik güncellenirken bir hata ile karşılaşıldı",
-    "postUpdateSuccess": "Gönderi başarıyla güncellendi",
-    "eventUpdateSuccess": "Etkinlik başarıyla güncellendi",
-    "deleteClub": "Kulübü Sil",
-    "dangerZone": "Tehlikeli Alan",
-    "deleteClubConfirmTitle": "Kulübü Kalıcı Olarak Sil",
-    "deleteClubConfirmMessage": "'{{clubName}}' kulübünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve kulübe ait tüm gönderiler, etkinlikler ve üyelikler kalıcı olarak silinecektir.",
-    "clubDeleteSuccess": "Kulüp başarıyla silindi.",
-    "clubDeleteError": "Kulüp silinirken bir hata oluştu.",
-     "clubLoadError": "Kulüp detayları yüklenemedi.",
-    "withdrawRequest": "İsteği Geri Çek",
-    "withdrawRequestTitle": "İsteği Geri Çek",
-    "withdrawRequestMessage": "Kulübe katılma isteğini geri çekmek istediğine emin misin?",
-    "withdraw": "Geri Çek",
-    "withdrawRequestSuccess": "Katılma isteğin başarıyla geri çekildi.",
-    "withdrawRequestError": "İstek geri çekilirken bir hata oluştu.",
-    "back": "Geri",
-    "close": "Kapat",
-    "search": "Ara",
-    "noResultsFound": "Sonuç bulunamadı.",
-    "confirm": "Onayla",
-    "confirmTransferOwnershipTitle": "Kulüp sahipliğini ata",
-    "confirmTransferOwnershipMessage": "'{{memberName}}''i kulüp sahibi yapmak istediğinizden emin misiniz? Yöneticiye düşürüleceksiniz.",
-    "ownershipTransferSuccess": "Sahiplik '{{memberName}}' e atandı.",
-    "ownershipTransferError": "Sahiplik ataması yaparken bir hata oluştu.",
-    "transferButton": "Sahipliği ata"
-
-  
-
+    "allOptions": "Hepsi"
 
     
     
