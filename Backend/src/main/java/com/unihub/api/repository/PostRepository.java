@@ -16,4 +16,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @EntityGraph(attributePaths = {"likes", "likes.user", "creator", "club"})
     List<Post> findByClubIdNotIn(List<Long> clubIds, Pageable pageable);
+
+    List<Post> findByClubId(Long clubId);
 }

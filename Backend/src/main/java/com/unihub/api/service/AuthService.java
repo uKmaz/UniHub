@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 public class AuthService {
 
     private final UserRepository userRepository;
-    public static final String DEFAULT_USER_PICTURE_URL = "https://firebasestorage.googleapis.com/v0/b/unihub-aea98.firebasestorage.app/o/public%2FunihubDefaultProfilePicture.jpg?alt=media&token=2c37a3e9-aac6-4998-8d06-acd8ecd385fd";
+    public static final String DEFAULT_USER_PICTURE_URL = "https://firebasestorage.googleapis.com/v0/b/unihub-n.firebasestorage.app/o/public%2FunihubDefaultProfilePicture.jpg?alt=media&token=b9004dbe-8b02-45b5-bef8-62cff34949f8";
 
 
     public AuthService(UserRepository userRepository) {
@@ -41,7 +41,9 @@ public class AuthService {
         newUser.setFirebaseUid(firebaseUid);
         newUser.setEmail(userRecord.getEmail());
         newUser.setName(userRecord.getDisplayName());
-
+        newUser.setUniversity(request.getUniversity());
+        newUser.setFaculty(request.getFaculty());
+        newUser.setDepartment(request.getDepartment());
         // --- DEĞİŞİKLİK BURADA ---
         // Firebase'den gelen fotoğraf URL'sini al, eğer yoksa (null ise) varsayılanı ata.
         String photoUrl = userRecord.getPhotoUrl() != null ? userRecord.getPhotoUrl() : DEFAULT_USER_PICTURE_URL;

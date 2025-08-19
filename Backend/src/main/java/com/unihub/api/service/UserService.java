@@ -148,6 +148,9 @@ public class UserService {
         userResponse.name = user.getName();
         userResponse.surname = user.getSurname();
         userResponse.profilePictureUrl = user.getProfilePictureUrl();
+        userResponse.setUniversity(user.getUniversity());
+        userResponse.setFaculty(user.getFaculty());
+        userResponse.setDepartment(user.getDepartment());
 
         if (user.getMemberships() != null) {
             userResponse.memberships = user.getMemberships().stream()

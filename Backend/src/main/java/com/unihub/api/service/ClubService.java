@@ -17,6 +17,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
 import java.util.*;
+import java.util.logging.LogRecord;
 import java.util.stream.Collectors;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
@@ -33,13 +34,16 @@ public class ClubService {
     private final LogService logService;
     private final StorageClient storageClient;
     private final EventAttendeeRepository eventAttendeeRepository;
-
-    private static final String DEFAULT_CLUB_PICTURE_URL = "https://firebasestorage.googleapis.com/v0/b/unihub-aea98.firebasestorage.app/o/public%2FunihubDefaultClubPicture.png?alt=media&token=da5a2205-c01d-4aaa-b0db-54bfe4727943";
-
+    private final PostRepository postRepository;
+    private final EventRepository eventRepository;
+    private final ClubLogRepository logRepository;
+    private static final String DEFAULT_CLUB_PICTURE_URL = "https://firebasestorage.googleapis.com/v0/b/unihub-n.firebasestorage.app/o/public%2FunihubDefaultClubPicture.png?alt=media&token=65787a53-8f94-410a-ba6b-28fad68837c6";
+    private static final String FIREBASE_STORAGE_BUCKET = "unihub-n.firebasestorage.app";
     public ClubService(ClubRepository clubRepository, UserRepository userRepository,
                        ClubMemberRepository clubMemberRepository, LogService logService,
                        ClubLogRepository clubLogRepository,  StorageClient storageClient,
-                       EventAttendeeRepository eventAttendeeRepository) {
+                       EventAttendeeRepository eventAttendeeRepository, PostRepository postRepository
+    , EventRepository eventRepository, ClubLogRepository logRepository) {
         this.clubRepository = clubRepository;
         this.userRepository = userRepository;
         this.clubMemberRepository = clubMemberRepository;
@@ -47,6 +51,9 @@ public class ClubService {
         this.logService = logService;
         this.storageClient = storageClient;
         this.eventAttendeeRepository = eventAttendeeRepository;
+        this.postRepository = postRepository;
+        this.eventRepository = eventRepository;
+        this.logRepository = logRepository;
     }
 
     @Transactional
@@ -81,6 +88,7 @@ public class ClubService {
         ClubMember membership = new ClubMember();
         membership.setClub(savedClub);
         membership.setUser(creator);
+        membership.setName(creator.getName());
         membership.setRole(Role.OWNER);
         membership.setStatus(MembershipStatus.APPROVED);
         clubMemberRepository.save(membership);
@@ -99,6 +107,7 @@ public class ClubService {
         return mapClubToClubResponse(club, currentUser.getId());
     }
 
+    @Transactional
     public ClubDetailResponse getClubDetails(Long clubId, String firebaseUid) {
         User currentUser = userRepository.findByFirebaseUid(firebaseUid)
                 .orElseThrow(() -> new RuntimeException("User not found."));
@@ -168,13 +177,16 @@ public class ClubService {
     }
 
     public List<UserInClubResponse> getPendingMembers(Long clubId, String adminFirebaseUid) {
+        // Yetki Kontrolü: Sadece yöneticiler görebilir.
         findMembership(adminFirebaseUid, clubId, Role.OWNER, Role.MANAGER);
+
         return clubMemberRepository.findByClubIdAndStatus(clubId, MembershipStatus.PENDING)
                 .stream()
                 .map(this::mapMemberToUserInClubResponse)
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public void requestToJoinClub(Long clubId, String memberFirebaseUid) {
         User user = userRepository.findByFirebaseUid(memberFirebaseUid)
                 .orElseThrow(() -> new RuntimeException("User not found."));
@@ -182,18 +194,91 @@ public class ClubService {
                 .orElseThrow(() -> new RuntimeException("Club not found."));
 
         // Kullanıcının zaten üye olup olmadığını veya beklemede bir isteği olup olmadığını kontrol et
-        boolean alreadyMemberOrPending = clubMemberRepository.existsByUserAndClub(user, club);
-        if (alreadyMemberOrPending) {
-            throw new IllegalStateException("User is already a member or has a pending request.");
+        if (clubMemberRepository.existsByUserAndClub(user, club)) {
+            throw new IllegalStateException("Kullanıcı zaten üye veya beklemede bir katılma isteği var.");
         }
 
-        // Yeni bir üyelik isteği oluştur (durumu PENDING)
         ClubMember newRequest = new ClubMember();
         newRequest.setUser(user);
         newRequest.setClub(club);
+        newRequest.setName(user.getName());
         newRequest.setRole(Role.MEMBER);
-        newRequest.setStatus(MembershipStatus.PENDING);
+        newRequest.setStatus(MembershipStatus.PENDING); // Durumu 'Beklemede' olarak ayarla
         clubMemberRepository.save(newRequest);
+    }
+
+    @Transactional
+    public void withdrawJoinRequest(Long clubId, String memberFirebaseUid) {
+        // İsteği yapan kullanıcıyı bul
+        User user = userRepository.findByFirebaseUid(memberFirebaseUid)
+                .orElseThrow(() -> new RuntimeException("User not found with UID: " + memberFirebaseUid));
+
+        // İlgili kulübü bul
+        Club club = clubRepository.findById(clubId)
+                .orElseThrow(() -> new RuntimeException("Club not found with ID: " + clubId));
+
+        // Kullanıcının bu kulübe yaptığı ve 'PENDING' durumundaki isteği bul
+        ClubMember request = clubMemberRepository.findByClubAndUserAndStatus(club, user, MembershipStatus.PENDING)
+                .orElseThrow(() -> new IllegalStateException("No pending request found for this user and club."));
+
+        // Bulunan isteği veritabanından sil
+        clubMemberRepository.delete(request);
+    }
+
+    @Transactional
+    public void demoteMember(Long clubId, Long userIdToDemote, String adminFirebaseUid) {
+        // İşlemi yapanın kulüp sahibi (OWNER) olup olmadığını kontrol et
+        ClubMember adminMembership = findMembership(adminFirebaseUid, clubId, Role.OWNER);
+
+        // Yetkisi düşürülecek üyeyi bul
+        ClubMember memberToDemote = clubMemberRepository.findByClubIdAndUserId(clubId, userIdToDemote)
+                .orElseThrow(() -> new RuntimeException("Member to demote not found."));
+
+        // Sadece 'MANAGER' rolündeki üyelerin yetkisi 'MEMBER' rolüne düşürülebilir
+        if (memberToDemote.getRole() != Role.MANAGER) {
+            throw new IllegalStateException("Only managers can be demoted to member.");
+        }
+
+        // Rolü güncelle ve kaydet
+        memberToDemote.setRole(Role.MEMBER);
+        clubMemberRepository.save(memberToDemote);
+
+        // --- LOGLAMA ---
+        String adminName = adminMembership.getUser().getName(); // İşlemi yapanın adını al
+        String action = String.format("'%s', '%s' adlı yöneticinin yetkisini 'MEMBER' rolüne düşürdü.", adminName, memberToDemote.getUser().getName());
+        logService.logClubAction(clubId, adminFirebaseUid, action);
+    }
+
+    @Transactional
+    public void transferOwnership(Long clubId, Long newOwnerUserId, String currentOwnerFirebaseUid) {
+        // 1. Verify the user performing the action is the current owner.
+        ClubMember currentOwner = clubMemberRepository.findByUserFirebaseUidAndClubId(currentOwnerFirebaseUid, clubId)
+                .orElseThrow(() -> new RuntimeException("Current owner membership not found."));
+
+        if (currentOwner.getRole() != Role.OWNER) {
+            throw new IllegalStateException("Only the current club owner can transfer ownership.");
+        }
+
+        // 2. Verify the target user is a manager in the club.
+        ClubMember newOwner = clubMemberRepository.findByClubIdAndUserId(clubId, newOwnerUserId)
+                .orElseThrow(() -> new RuntimeException("New owner membership not found."));
+
+        if (newOwner.getRole() != Role.MANAGER) {
+            throw new IllegalStateException("Ownership can only be transferred to a manager.");
+        }
+
+        // 3. Perform the role swap.
+        currentOwner.setRole(Role.MANAGER); // Demote the current owner to manager.
+        newOwner.setRole(Role.OWNER);     // Promote the target manager to owner.
+
+        // 4. Save both changes to the database.
+        clubMemberRepository.save(currentOwner);
+        clubMemberRepository.save(newOwner);
+
+        // 5. Log the action for auditing purposes.
+        String action = String.format("'%s' transferred club ownership to '%s'.",
+                currentOwner.getUser().getName(), newOwner.getUser().getName());
+        logService.logClubAction(clubId, currentOwnerFirebaseUid, action);
     }
 
     @Transactional
@@ -201,19 +286,20 @@ public class ClubService {
         ClubMember adminMembership = findMembership(adminFirebaseUid, clubId, Role.OWNER, Role.MANAGER);
         ClubMember request = clubMemberRepository.findByClubIdAndUserId(clubId, userIdToManage)
                 .orElseThrow(() -> new RuntimeException("Membership request not found."));
-        String adminName = adminMembership.getUser().getName(); // İşlemi yapanın adını al
+
+        String adminName = adminMembership.getUser().getName();
+        String targetUserName = request.getUser().getName();
 
         if (approve) {
             request.setStatus(MembershipStatus.APPROVED);
             clubMemberRepository.save(request);
-            // --- LOGLAMA ---
-            String action = String.format("'%s', '%s' adlı kullanıcının üyelik isteğini onayladı.", adminName, request.getUser().getName());
+            // Loglama
+            String action = String.format("'%s', '%s' adlı kullanıcının üyelik isteğini onayladı.", adminName, targetUserName);
             logService.logClubAction(clubId, adminFirebaseUid, action);
         } else {
-            String rejectedUserName = request.getUser().getName();
             clubMemberRepository.delete(request);
-            // --- LOGLAMA ---
-            String action = String.format("'%s', '%s' adlı kullanıcının üyelik isteğini reddetti.", adminName, rejectedUserName);
+            // Loglama
+            String action = String.format("'%s', '%s' adlı kullanıcının üyelik isteğini reddetti.", adminName, targetUserName);
             logService.logClubAction(clubId, adminFirebaseUid, action);
         }
     }
@@ -285,8 +371,7 @@ public class ClubService {
             clubToUpdate.setProfilePictureUrl(request.profilePictureUrl);
         }
 
-        // --- YENİ MANTIK: ESKİ FOTOĞRAFI SİLME ---
-        // Eğer eski URL varsa VE varsayılan değilse VE yeni URL'den farklıysa, sil.
+
         if (oldPhotoUrl != null && !oldPhotoUrl.equals(DEFAULT_CLUB_PICTURE_URL) && !oldPhotoUrl.equals(request.profilePictureUrl)) {
             try {
                 Bucket bucket = storageClient.bucket();
@@ -406,33 +491,52 @@ public class ClubService {
 
     @Transactional
     public void deleteClub(Long clubId, String ownerFirebaseUid) {
-        // 1. Yetki Kontrolü: Bu işlemi sadece ve sadece kulübün OWNER'ı yapabilir.
-        findMembership(ownerFirebaseUid, clubId, Role.OWNER);
-
+        // 1. Kulübü ve işlemi yapan kullanıcıyı bul
         Club clubToDelete = clubRepository.findById(clubId)
                 .orElseThrow(() -> new RuntimeException("Club not found."));
 
-        // 2. Firebase Storage'dan tüm ilişkili dosyaları sil.
-        // Post resimleri
-        clubToDelete.getPosts().forEach(post -> {
-            if (post.getImages() != null) {
-                post.getImages().forEach(image -> deleteFileFromStorage(image.getImageUrl()));
-            }
-        });
-        // Event resimleri
-        clubToDelete.getEvents().forEach(event -> {
-            if (event.getPictureURL() != null) {
-                deleteFileFromStorage(event.getPictureURL());
-            }
-        });
-        // Kulübün kendi profil fotoğrafı
-        if (clubToDelete.getProfilePictureUrl() != null && !clubToDelete.getProfilePictureUrl().equals(DEFAULT_CLUB_PICTURE_URL)) {
-            deleteFileFromStorage(clubToDelete.getProfilePictureUrl());
+        User owner = userRepository.findByFirebaseUid(ownerFirebaseUid)
+                .orElseThrow(() -> new RuntimeException("User not found."));
+
+        // 2. Yetki Kontrolü: Sadece kulüp sahibi kulübü silebilir
+        ClubMember ownerMembership = clubMemberRepository.findByClubAndUser(clubToDelete, owner)
+                .orElseThrow(() -> new SecurityException("User is not a member of this club."));
+
+        if (ownerMembership.getRole() != Role.OWNER) {
+            throw new SecurityException("Only the club owner can delete the club.");
         }
 
-        // 3. Veritabanından kulübü sil.
-        // Cascade ayarları sayesinde, bu işlem tüm üyelikleri, gönderileri, etkinlikleri,
-        // logları, beğenileri, katılımları ve form cevaplarını da otomatik olarak silecektir.
+        // 3. KULÜBE BAĞLI TÜM KAYITLARI TEMİZLE (MANUAL CASCADE DELETE)
+
+        // a. Kulübün tüm gönderilerini sil (Bu işlem resimleri de storage'dan silmeli)
+        List<Post> postsToDelete = postRepository.findByClubId(clubId);
+        for (Post post : postsToDelete) {
+            // PostService'teki deletePost metodu, resimleri de sildiği için onu kullanmak en iyisi.
+            // Bu metodun, gönderiyi silmeye çalışan kişinin yetkisini kontrol etmediğini varsayıyoruz
+            // veya bu senaryo için yetki kontrolünü geçici olarak atlayacak bir versiyonu olmalı.
+            // Basitlik adına, direkt repository'den silelim ve resim silmeyi burada yönetelim.
+            if (post.getImages() != null && !post.getImages().isEmpty()) {
+                for (PostImage image : post.getImages()) {
+                    deleteImageFromStorage(image.getImageUrl()); // Bu metodun ClubService içinde de olması gerekir
+                }
+            }
+        }
+        postRepository.deleteAll(postsToDelete);
+
+
+        // b. Kulübün tüm etkinliklerini sil
+        // Not: Etkinliklerin de katılımcıları vb. olabilir, onların da temizlenmesi gerekebilir.
+        // Şimdilik direkt siliyoruz.
+        eventRepository.deleteAll(eventRepository.findByClubId(clubId));
+
+        // c. Kulübün tüm üyeliklerini sil
+        clubMemberRepository.deleteAll(clubMemberRepository.findByClubId(clubId));
+
+        // d. Kulübün tüm log kayıtlarını sil
+        logRepository.deleteAll(logRepository.findByClubId(clubId));
+
+        // 4. SON OLARAK KULÜBÜN KENDİSİNİ VE PROFİL FOTOĞRAFINI SİL
+        deleteImageFromStorage(clubToDelete.getProfilePictureUrl());
         clubRepository.delete(clubToDelete);
     }
     // --- YARDIMCI METODLAR ---
@@ -552,7 +656,11 @@ public class ClubService {
     }
 
     private void deleteFileFromStorage(String fileUrl) {
-        if (fileUrl == null || fileUrl.isEmpty()) return;
+        if (fileUrl == null || fileUrl.isEmpty()) {
+            System.out.println("STORAGE LOG: Silinecek dosya URL'i boş veya null, işlem atlanıyor.");
+            return;
+        }
+        System.out.println("STORAGE LOG: Dosya silme işlemi başlıyor. URL: " + fileUrl);
         try {
             Bucket bucket = storageClient.bucket();
             String filePath = new URL(fileUrl).getPath()
@@ -560,14 +668,48 @@ public class ClubService {
                     .split("\\?")[0];
 
             filePath = URLDecoder.decode(filePath, StandardCharsets.UTF_8);
+            System.out.println("STORAGE LOG: Hesaplanmış dosya yolu: " + filePath);
 
             Blob blob = bucket.get(filePath);
             if (blob != null) {
                 blob.delete();
-                System.out.println("Dosya silindi: " + filePath);
+                System.out.println("STORAGE LOG: BAŞARILI! Dosya silindi: " + filePath);
+            } else {
+                System.out.println("STORAGE LOG: UYARI! Dosya bulunamadı: " + filePath);
             }
         } catch (Exception e) {
-            System.err.println("Storage'dan dosya silinirken hata: " + e.getMessage());
+            System.err.println("STORAGE LOG: HATA! Storage'dan dosya silinirken hata: " + e.getMessage());
+        }
+    }
+
+    private void deleteImageFromStorage(String imageUrl) {
+        if (imageUrl == null || imageUrl.isEmpty()) {
+            System.out.println("STORAGE LOG: Silinecek resim URL'i boş veya null, işlem atlanıyor.");
+            return;
+        }
+        System.out.println("STORAGE LOG: Resim silme işlemi başlıyor. URL: " + imageUrl);
+        try {
+            Bucket bucket = storageClient.bucket(FIREBASE_STORAGE_BUCKET);
+            URL url = new URL(imageUrl);
+            String path = url.getPath();
+            String prefix = "/v0/b/" + FIREBASE_STORAGE_BUCKET + "/o/";
+            if (path.startsWith(prefix)) {
+                String filePath = path.substring(prefix.length());
+                filePath = URLDecoder.decode(filePath, StandardCharsets.UTF_8);
+                System.out.println("STORAGE LOG: Hesaplanmış resim yolu: " + filePath);
+
+                Blob blob = bucket.get(filePath);
+                if (blob != null) {
+                    blob.delete();
+                    System.out.println("STORAGE LOG: BAŞARILI! Resim silindi: " + filePath);
+                } else {
+                    System.out.println("STORAGE LOG: UYARI! Resim bulunamadı: " + filePath);
+                }
+            } else {
+                System.out.println("STORAGE LOG: UYARI! URL beklenen formatta değil, yol çıkarılamadı.");
+            }
+        } catch (Exception e) {
+            System.err.println("STORAGE LOG: HATA! Storage'dan resim silinirken hata: " + e.getMessage());
         }
     }
 }

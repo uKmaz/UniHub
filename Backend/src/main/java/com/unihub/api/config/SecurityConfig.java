@@ -4,6 +4,7 @@ import com.unihub.api.filter.FirebaseTokenFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -32,10 +33,8 @@ public class SecurityConfig {
 
                 // Gelen HTTP istekleri için yetkilendirme kurallarını tanımlıyoruz.
                 .authorizeHttpRequests(authorize -> authorize
-                        // Kayıt endpoint'ine, token'ı olsun veya olmasın, herkesin erişebilmesini sağlıyoruz.
                         .requestMatchers("/api/auth/register").permitAll()
-
-                        // Yukarıdaki kural DIŞINDAKİ TÜM isteklerin kimlik doğrulaması gerektirdiğini belirtiyoruz.
+                        .requestMatchers(HttpMethod.DELETE, "/api/clubs/**").authenticated()
                         .anyRequest().authenticated()
                 );
 

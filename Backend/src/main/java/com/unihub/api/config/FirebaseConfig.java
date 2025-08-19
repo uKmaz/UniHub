@@ -1,5 +1,6 @@
 package com.unihub.api.config;
 
+import com.fasterxml.jackson.core.JsonParseException; // Add this import
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -8,6 +9,7 @@ import com.google.firebase.FirebaseOptions;
 import com.google.firebase.cloud.StorageClient;
 import com.google.firebase.messaging.FirebaseMessaging;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
@@ -21,37 +23,59 @@ import java.util.Map;
 @Configuration
 public class FirebaseConfig {
 
+    @Value("${FIREBASE_CREDENTIALS_JSON:#{null}}")
+    private String firebaseCredentialsJson;
+
     @PostConstruct
     public void initialize() {
         try {
-            // 1. Kimlik bilgisi dosyasını bir InputStream olarak yükle
-            InputStream serviceAccountStream = new ClassPathResource("firebase-service-account.json").getInputStream();
+            InputStream serviceAccountStream;
+            if (firebaseCredentialsJson != null && !firebaseCredentialsJson.isEmpty()) {
+                System.out.println("LOG: Loading Firebase credentials from environment variable.");
+                serviceAccountStream = new ByteArrayInputStream(firebaseCredentialsJson.getBytes(StandardCharsets.UTF_8));
+            } else {
+                System.out.println("LOG: Attempting to load Firebase credentials from file.");
+                ClassPathResource resource = new ClassPathResource("firebase-service-account.json");
+                if (!resource.exists()) {
+                    throw new IOException("Firebase service account file not found in classpath.");
+                }
+                serviceAccountStream = resource.getInputStream();
+            }
 
-            // 2. Dosyanın içeriğini bir metin olarak oku (bu, onu birden fazla kez kullanmamızı sağlar)
+            // Read JSON content
             String jsonContent = new String(serviceAccountStream.readAllBytes(), StandardCharsets.UTF_8);
+            System.out.println("LOG: JSON content to parse: " + jsonContent);
 
-            // 3. Metni JSON olarak ayrıştırıp içinden "project_id"yi al
             ObjectMapper mapper = new ObjectMapper();
-            Map<String, String> jsonMap = mapper.readValue(jsonContent, new TypeReference<>() {});
-            String projectId = jsonMap.get("project_id");
+            Map<String, String> jsonMap;
+            try {
+                jsonMap = mapper.readValue(jsonContent, new TypeReference<>() {});
+            } catch (JsonParseException e) {
+                System.err.println("ERROR: Failed to parse JSON: " + e.getMessage());
+                System.err.println("ERROR: Problematic JSON: " + jsonContent);
+                throw e;
+            }
+            String bucketName = jsonMap.get("project_id") + ".firebasestorage.app";
+            System.out.println("LOG: Using storage bucket: " + bucketName);
 
-            // 4. "project_id"yi kullanarak doğru storageBucket adını oluştur
-            String bucketName = projectId + ".firebasestorage.app";
+            // Reset stream for credentials
+            serviceAccountStream = new ByteArrayInputStream(jsonContent.getBytes(StandardCharsets.UTF_8));
 
-            // 5. Kimlik bilgileri için metinden yeni bir InputStream oluştur
-            InputStream credentialsStream = new ByteArrayInputStream(jsonContent.getBytes(StandardCharsets.UTF_8));
-
-            // 6. Firebase'i, hem kimlik bilgileri hem de storageBucket adıyla başlat
             FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(credentialsStream))
-                    .setStorageBucket(bucketName) // <-- EN ÖNEMLİ DÜZELTME
+                    .setCredentials(GoogleCredentials.fromStream(serviceAccountStream))
+                    .setStorageBucket(bucketName)
                     .build();
 
             if (FirebaseApp.getApps().isEmpty()) {
                 FirebaseApp.initializeApp(options);
+                System.out.println("LOG: Firebase App initialized successfully.");
+            } else {
+                System.out.println("LOG: Firebase App already initialized.");
             }
         } catch (IOException e) {
-            throw new RuntimeException("Firebase başlatılamadı. firebase-service-account.json dosyasını kontrol edin.", e);
+            System.err.println("ERROR: Failed to initialize Firebase: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Firebase initialization failed. Check credentials or file configuration.", e);
         }
     }
 

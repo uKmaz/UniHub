@@ -22,4 +22,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findByEventDateAfter(LocalDateTime dateTime, Sort sort);
 
     List<Event> findByEventDateBefore(LocalDateTime dateTime, Sort sort);
+
+    List<Event> findByClubId(Long clubId);
 }

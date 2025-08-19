@@ -35,7 +35,7 @@ public class PostService {
     private final NotificationService notificationService;
 
 
-    private static final String FIREBASE_STORAGE_BUCKET = "unihub-aea98.firebasestorage.app";
+    private static final String FIREBASE_STORAGE_BUCKET = "unihub-n.firebasestorage.app";
 
 
     public PostService(PostRepository postRepository, UserRepository userRepository,
@@ -53,6 +53,7 @@ public class PostService {
 
     }
 
+    @Transactional(readOnly = true)
     public List<PostSummaryResponse> getAllPosts(String firebaseUid) {
         User user = userRepository.findByFirebaseUid(firebaseUid)
                 .orElseThrow(() -> new RuntimeException("User not found."));
@@ -86,7 +87,6 @@ public class PostService {
         newPost.setCreator(creator);
         newPost.setClub(club);
 
-        // YENİ MANTIK: Gelen URL listesinden PostImage nesneleri oluştur
         if (request.pictureURLs != null && !request.pictureURLs.isEmpty()) {
             List<PostImage> images = request.pictureURLs.stream()
                     .map(url -> new PostImage(url, newPost))
@@ -146,23 +146,18 @@ public class PostService {
         boolean isCreator = postToDelete.getCreator().getId().equals(currentUser.getId());
         boolean isClubManagerOrOwner = membership != null && (membership.getRole() == Role.OWNER || membership.getRole() == Role.MANAGER);
 
-        if (!isCreator && !isClubManagerOrOwner) {
+        if (!isClubManagerOrOwner) {
             throw new SecurityException("User is not authorized to delete this post.");
         }
 
-        // --- NİHAİ DÜZELTME: FOTOĞRAFLARI STORAGE'DAN SİLME ---
         if (postToDelete.getImages() != null && !postToDelete.getImages().isEmpty()) {
-            // Depolama alanını adıyla, açıkça çağırıyoruz.
             Bucket bucket = storageClient.bucket(FIREBASE_STORAGE_BUCKET);
 
             for (PostImage image : postToDelete.getImages()) {
                 try {
-                    // URL'den dosya yolunu doğru bir şekilde çıkar
                     URL url = new URL(image.getImageUrl());
                     String path = url.getPath();
-                    // Baştaki '/v0/b/bucket-name/o/' kısmını kaldır
                     String filePath = path.substring(("/v0/b/" + FIREBASE_STORAGE_BUCKET + "/o/").length());
-                    // URL kodlanmış karakterleri düzelt (örn: %2F -> /)
                     filePath = URLDecoder.decode(filePath, StandardCharsets.UTF_8);
 
                     Blob blob = bucket.get(filePath);
@@ -185,30 +180,80 @@ public class PostService {
 
     @Transactional
     public PostDetailResponse updatePost(Long postId, PostUpdateRequest request, String firebaseUid) {
+        // 1. Gerekli kullanıcı ve gönderi nesnelerini veritabanından çek
         User currentUser = userRepository.findByFirebaseUid(firebaseUid)
                 .orElseThrow(() -> new RuntimeException("User not found."));
 
         Post postToUpdate = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found."));
 
-        // Yetki Kontrolü
-        ClubMember membership = clubMemberRepository.findByClubIdAndUserId(postToUpdate.getClub().getId(), currentUser.getId()).orElse(null);
-        boolean isCreator = postToUpdate.getCreator().getId().equals(currentUser.getId());
+        // 2. Yetki Kontrolü: Sadece kulüp yöneticisi veya sahibi bu işlemi yapabilir
+        ClubMember membership = clubMemberRepository.findByClubIdAndUserId(postToUpdate.getClub().getId(), currentUser.getId())
+                .orElse(null);
         boolean isClubManagerOrOwner = membership != null && (membership.getRole() == Role.OWNER || membership.getRole() == Role.MANAGER);
 
         if (!isClubManagerOrOwner) {
             throw new SecurityException("User is not authorized to edit this post.");
         }
 
-        postToUpdate.setDescription(request.description);
+        // 3. Gönderinin açıklamasını güncelle
+        postToUpdate.setDescription(request.getDescription());
+
+        // 4. Silinmesi istenen fotoğrafları Firebase Storage'dan sil
+        if (request.getImagesToDelete() != null && !request.getImagesToDelete().isEmpty()) {
+            for (String urlToDelete : request.getImagesToDelete()) {
+                deleteImageFromStorage(urlToDelete);
+            }
+        }
+
+        // 5. Gönderinin mevcut resim listesini tamamen temizle.
+        // Post entity'sindeki @OneToMany ilişkisinde orphanRemoval=true ayarı sayesinde,
+        // bu işlem ilişkili PostImage kayıtlarını veritabanından otomatik olarak siler.
+        postToUpdate.getImages().clear();
+
+        // 6. Frontend'den gelen nihai URL listesiyle gönderinin resimlerini yeniden oluştur.
+        // Bu, hem yeni eklenenleri kaydeder hem de sıralamayı günceller.
+        if (request.getPictureURLs() != null && !request.getPictureURLs().isEmpty()) {
+            List<PostImage> newImages = request.getPictureURLs().stream()
+                    .map(url -> new PostImage(url, postToUpdate))
+                    .collect(Collectors.toList());
+            postToUpdate.getImages().addAll(newImages);
+        }
+
+        // 7. Güncellenmiş gönderiyi veritabanına kaydet
         Post updatedPost = postRepository.save(postToUpdate);
 
-        // Loglama
+        // 8. Yapılan işlemi logla
         logService.logClubAction(updatedPost.getClub().getId(), firebaseUid, String.format("'%s' ID'li gönderiyi güncelledi.", postId));
 
+        // 9. Güncellenmiş gönderinin detaylarını DTO olarak döndür
         return mapPostToDetailDto(updatedPost, currentUser.getId());
     }
     // --- DTO ÇEVİRME METODLARI ---
+
+    private void deleteImageFromStorage(String imageUrl) {
+        if (imageUrl == null || imageUrl.isEmpty()) return;
+        try {
+            Bucket bucket = storageClient.bucket(FIREBASE_STORAGE_BUCKET);
+            URL url = new URL(imageUrl);
+            String path = url.getPath();
+
+            // URL'den dosya yolunu doğru şekilde çıkar
+            String prefix = "/v0/b/" + FIREBASE_STORAGE_BUCKET + "/o/";
+            if (path.startsWith(prefix)) {
+                String filePath = path.substring(prefix.length());
+                filePath = URLDecoder.decode(filePath, StandardCharsets.UTF_8);
+
+                Blob blob = bucket.get(filePath);
+                if (blob != null) {
+                    blob.delete();
+                }
+            }
+        } catch (Exception e) {
+            // Hata olsa bile devam et, belki dosya zaten silinmiştir veya URL formatı farklıdır.
+            System.err.println("Storage'dan dosya silinirken hata: " + e.getMessage());
+        }
+    }
 
     private PostSummaryResponse mapPostToSummaryDto(Post post, Long currentUserId) {
         PostSummaryResponse dto = new PostSummaryResponse();

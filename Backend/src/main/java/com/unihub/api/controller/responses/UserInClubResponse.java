@@ -9,4 +9,5 @@ public class UserInClubResponse {
     public String profilePictureUrl;
     public Role role;
     public MembershipStatus status;
+
 }

@@ -1,5 +1,6 @@
 package com.unihub.api.controller;
 
+import com.unihub.api.controller.requests.FcmTokenRequest;
 import com.unihub.api.controller.requests.UserProfileUpdateRequest;
 import com.unihub.api.controller.responses.UserResponse;
 import com.unihub.api.controller.responses.UserSummaryResponse;
@@ -72,10 +73,12 @@ public class UserController {
     }
 
     @PostMapping("/me/fcm-token")
-    public ResponseEntity<Void> updateFcmToken(@RequestBody String fcmToken, Authentication authentication) {
+    public ResponseEntity<Void> updateFcmToken(@RequestBody FcmTokenRequest request, Authentication authentication) {
         String firebaseUid = (String) authentication.getPrincipal();
-        String cleanedToken = fcmToken.replace("\"", "");
-        userService.updateFcmToken(firebaseUid, cleanedToken);
+
+
+        userService.updateFcmToken(firebaseUid, request.getToken());
         return ResponseEntity.ok().build();
     }
+
 }

@@ -5,12 +5,15 @@ import com.unihub.api.controller.requests.ClubUpdateRequest;
 import com.unihub.api.controller.requests.EventCreationRequest;
 import com.unihub.api.controller.requests.NotificationSettingsRequest;
 import com.unihub.api.controller.responses.*;
+import com.unihub.api.model.User;
 import com.unihub.api.service.ClubService;
 import com.unihub.api.service.EventService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -65,12 +68,6 @@ public class ClubController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/{clubId}/pending-members")
-    public List<UserInClubResponse> getPendingMembers(@PathVariable Long clubId, Authentication authentication) {
-        String adminFirebaseUid = (String) authentication.getPrincipal();
-        return clubService.getPendingMembers(clubId, adminFirebaseUid);
-    }
-
     @DeleteMapping("/{clubId}/members/{userIdToRemove}")
     public ResponseEntity<Void> removeMember(
             @PathVariable Long clubId,
@@ -91,18 +88,63 @@ public class ClubController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/{clubId}/join")
-    public ResponseEntity<String> requestToJoinClub(@PathVariable Long clubId, Authentication authentication) {
-        String memberFirebaseUid = (String) authentication.getPrincipal();
-        clubService.requestToJoinClub(clubId, memberFirebaseUid);
-        return ResponseEntity.ok("Join request sent successfully.");
+    @PostMapping("/{clubId}/members/{userId}/demote")
+    public ResponseEntity<Void> demoteMember(@PathVariable Long clubId, @PathVariable Long userId, Authentication authentication) {
+        // Spring Security kullanarak işlemi yapan admin'in kimliğini alıyoruz
+        String adminFirebaseUid = (String) authentication.getPrincipal();
+        clubService.demoteMember(clubId, userId, adminFirebaseUid);
+        return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/{clubId}/requests/{userIdToManage}/approve")
-    public ResponseEntity<String> approveJoinRequest(@PathVariable Long clubId, @PathVariable Long userIdToManage, Authentication authentication) {
+
+    @PostMapping("/{clubId}/members/{newOwnerUserId}/transfer-ownership")
+    public ResponseEntity<Void> transferOwnership(
+            @PathVariable Long clubId,
+            @PathVariable Long newOwnerUserId,
+            Authentication authentication) {
+
+        String currentOwnerFirebaseUid = (String) authentication.getPrincipal();
+        clubService.transferOwnership(clubId, newOwnerUserId, currentOwnerFirebaseUid);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{clubId}/join")
+    public ResponseEntity<Void> requestToJoinClub(@PathVariable Long clubId, Authentication authentication) {
+        String firebaseUid = (String) authentication.getPrincipal();
+        clubService.requestToJoinClub(clubId, firebaseUid);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{clubId}/join")
+    public ResponseEntity<Void> withdrawJoinRequest(@PathVariable Long clubId, Authentication authentication) {
+        // İşlemi yapan kullanıcının kimliğini al
+        String memberFirebaseUid = (String) authentication.getPrincipal();
+
+        // Servis metodunu çağır
+        clubService.withdrawJoinRequest(clubId, memberFirebaseUid);
+
+        // Başarılı yanıtı döndür
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{clubId}/pending-members")
+    public List<UserInClubResponse> getPendingMembers(@PathVariable Long clubId, Authentication authentication) {
         String adminFirebaseUid = (String) authentication.getPrincipal();
-        clubService.manageJoinRequest(clubId, userIdToManage, true, adminFirebaseUid);
-        return ResponseEntity.ok("User approved successfully.");
+        return clubService.getPendingMembers(clubId, adminFirebaseUid);
+    }
+
+    @PostMapping("/{clubId}/requests/{userId}/approve")
+    public ResponseEntity<Void> approveJoinRequest(@PathVariable Long clubId, @PathVariable Long userId, Authentication authentication) {
+        String adminFirebaseUid = (String) authentication.getPrincipal();
+        clubService.manageJoinRequest(clubId, userId, true, adminFirebaseUid);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{clubId}/requests/{userId}/reject")
+    public ResponseEntity<Void> rejectJoinRequest(@PathVariable Long clubId, @PathVariable Long userId, Authentication authentication) {
+        String adminFirebaseUid = (String) authentication.getPrincipal();
+        clubService.manageJoinRequest(clubId, userId, false, adminFirebaseUid);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/{clubId}/logs")
@@ -133,6 +175,8 @@ public class ClubController {
         
         return ResponseEntity.status(HttpStatus.CREATED).body(newEvent);
     }
+
+    // OWNER CANT LEAVE
 
     @DeleteMapping("/{clubId}/leave")
     public ResponseEntity<Void> leaveClub(@PathVariable Long clubId, Authentication authentication) {

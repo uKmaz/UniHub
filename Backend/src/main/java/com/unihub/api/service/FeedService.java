@@ -7,6 +7,7 @@ import com.unihub.api.repository.ClubMemberRepository;
 import com.unihub.api.repository.EventRepository;
 import com.unihub.api.repository.PostRepository;
 import com.unihub.api.repository.UserRepository;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -33,6 +34,7 @@ public class FeedService {
         this.eventRepository = eventRepository;
     }
 
+    @Transactional(readOnly = true)
     public List<EventSummaryResponse> getEventFeed(String firebaseUid, int page, int size, boolean onlyMemberClubs) {
         User user = userRepository.findByFirebaseUid(firebaseUid)
                 .orElseThrow(() -> new RuntimeException("User not found."));
@@ -69,6 +71,7 @@ public class FeedService {
                 .map(this::mapEventToSummaryDto)
                 .collect(Collectors.toList());
     }
+    @Transactional(readOnly = true)
     public List<PostSummaryResponse> getPostFeed(String firebaseUid, int page, int size, boolean onlyMemberClubs) {
         User user = userRepository.findByFirebaseUid(firebaseUid)
                 .orElseThrow(() -> new RuntimeException("User not found."));

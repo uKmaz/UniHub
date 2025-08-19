@@ -15,4 +15,6 @@ public class EventUpdateRequest {
 
     @Size(max = 255)
     public String location;
+
+    public String pictureUrl;
 }

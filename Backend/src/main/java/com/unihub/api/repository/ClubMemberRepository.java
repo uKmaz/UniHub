@@ -7,7 +7,7 @@ import com.unihub.api.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List; // -> YENİ IMPORT
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -18,4 +18,12 @@ public interface ClubMemberRepository extends JpaRepository<ClubMember, Long> {
     Optional<ClubMember> findByClubIdAndUserId(Long clubId, Long userId);
 
     List<ClubMember> findByClubIdAndStatus(Long clubId, MembershipStatus status);
+
+    Optional<ClubMember> findByClubAndUserAndStatus(Club club, User user, MembershipStatus status);
+
+    Optional<ClubMember> findByUserFirebaseUidAndClubId(String currentOwnerFirebaseUid, Long clubId);
+
+    Optional<ClubMember> findByClubAndUser(Club clubToDelete, User owner);
+
+    Iterable<? extends ClubMember> findByClubId(Long clubId);
 }

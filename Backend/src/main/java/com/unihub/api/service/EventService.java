@@ -93,6 +93,7 @@ public class EventService {
         }).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<EventSummaryResponse> getAllEvents() {
         return eventRepository.findAll().stream()
                 .map(this::mapEventToSummaryDto)
@@ -128,8 +129,6 @@ public class EventService {
         newEvent.setPictureURL(request.getPictureUrl());
         newEvent.setLocation(request.getLocation());
 
-        EventAttendee creatorAttendance = new EventAttendee(creator, newEvent);
-        newEvent.getAttendees().add(creatorAttendance);
 
         if (request.getQuestions() != null && !request.getQuestions().isEmpty()) {
             List<EventFormQuestion> questions = request.getQuestions().stream()
@@ -219,7 +218,7 @@ public class EventService {
         eventToUpdate.setEventDate(request.eventDate);
         eventToUpdate.setLocation(request.location);
         Event updatedEvent = eventRepository.save(eventToUpdate);
-
+        eventToUpdate.setPictureURL(request.pictureUrl);
         // Loglama
         logService.logClubAction(updatedEvent.getClub().getId(), firebaseUid, String.format("'%s' ID'li etkinliği güncelledi.", eventId));
 

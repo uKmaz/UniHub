@@ -9,4 +9,6 @@ import java.util.List;
 public interface ClubLogRepository extends JpaRepository<ClubLog, Long> {
     // Bir kulübün tüm loglarını en yeniden eskiye doğru getirir
     List<ClubLog> findByClubIdOrderByTimestampDesc(Long clubId);
+
+    List<ClubLog> findByClubId(Long clubId);
 }

@@ -54,9 +54,17 @@ public class PostController {
     }
 
     @PutMapping("/posts/{postId}")
-    public PostDetailResponse updatePost(@PathVariable Long postId, @Valid @RequestBody PostUpdateRequest request, Authentication authentication) {
+    public ResponseEntity<PostDetailResponse> updatePost(
+            @PathVariable Long postId,
+            @Valid @RequestBody PostUpdateRequest request, // Frontend'den gelen JSON'u bu DTO ile karşılıyoruz
+            Authentication authentication) {
+
         String firebaseUid = (String) authentication.getPrincipal();
-        return postService.updatePost(postId, request, firebaseUid);
+
+        // Servis katmanındaki asıl işi yapacak olan metodu çağırıyoruz
+        PostDetailResponse updatedPost = postService.updatePost(postId, request, firebaseUid);
+
+        return ResponseEntity.ok(updatedPost);
     }
 
     @GetMapping("/posts/{postId}")
